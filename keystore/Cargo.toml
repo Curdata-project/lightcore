@@ -14,3 +14,6 @@ lto = true
 opt-level = 's' 
 
 [dependencies]
+marrow-rt = { git = "https://github.com/Curdata-project/marrow"}
+wstd = { git = "https://github.com/Curdata-project/marrow"}
+wee_alloc = "0.4"
