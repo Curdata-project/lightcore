@@ -24,60 +24,41 @@ syntax = "proto3";
 
 // 密钥对数据格式
 message Keypair {
-  string account = 1;
-  string seed = 2;
-  string secret_key = 3;
-  string public_key = 4;
-  string type = 5;
-  string cert = 6;
+  bytes account = 1; //账户
+  bytes seed = 2; // 种子
+  bytes secret_key = 3; // 密钥
+  bytes public_key = 4; // 公钥
+  string type = 5; // 生成密钥的算法类型
+  bytes cert = 6; // 证书
 }
 
 // 密钥对list数据格式
 message KeyPairList {
-  repeated Keypair keypair_list = 1;
+  repeated Keypair keypair_list = 1; // 密钥对数组
 }
 
 // 数据库对应字段
 message Keystore{
-  string account = 1; // 账户
-  string encrypt_code = 2; // 加密码，用户给/随机生成，用来加密公钥和seed
+  bytes account = 1; // 账户
+  bytes encrypt_code = 2; // 加密码，用户给/随机生成，用来加密公钥和seed
   string public_encrypt_type = 3; // 公钥+种子 加密类型
   string secret_encrypt_type = 4; // 私钥 加密类型
-  string public_key = 5;
-  string secret_key = 6;
-  string cert = 7;
-  string create_date = 8;
+  bytes public_key = 5; // 公钥
+  bytes secret_key = 6; // 私钥
+  bytes cert = 7; // 证书
+  string create_date = 8; // 生成时间
 }
 
 // 签名结构体
 message Sign{
-  string message = 1; //需签名的数据
-  string type = 2; //签名类型
+  bytes account = 1; //账户
+  string message = 2; //需签名的数据
 }
 
 // 解锁/上锁
 message OptionLock{
-  string account = 1;
+  bytes account = 1;
   string encrypt_code = 2; // 解锁/上锁码
-}
-
-// 统一请求格式
-message Request{
-  oneof data{
-    string account = 1;
-    OptionLock option_lock = 2;
-    Sign sign = 3;
-  }
-}
-
-// 统一返回格式
-message Response{
-  oneof data {
-    Keypair keypair = 2;
-    Keystore keystore = 3;
-    KeyPairList keypair_list = 4;
-    uint32 code = 5;
-  }
 }
 
 ```
@@ -100,44 +81,75 @@ message Response{
 
 ### RPC 接口
 
-- #### list_accounts
+- #### list_accounts 
   - 参数：page usize,item usize,order usize
+    - page:无符号整数 页数
+    - item:无符号整数 每页条数
+    - order:无符号整数 0 正序 1倒序
   - 返回值：[u8]
+    - KeypairDisplayList
     
 - #### get_account
   - 参数：ptr *mut usize,size usize
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据原格式:bytes
   - 返回值：[u8]
+    - KeypairDisplay
   
-- #### new_account 随机生成密码
-  - 参数：ptr *mut usize,size usize
+- #### new_account 生成账户
   - 返回值：[u8]
+    - KeypairDisplay
   
-- #### import_account
+- #### import_account 导入账户
   - 参数：ptr *mut usize,size usize
-  - 返回值：[u8]
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:Keypair
+  - 返回值：usize
   
-- #### export_accounts
+- #### export_accounts 导出账户
   - 参数：ptr *mut usize,size usize
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:bytes
   - 返回值：[u8]
+    - Keypair
   
-- #### sign_message
+- #### sign_message 签名
   - 参数：ptr *mut usize,size usize
-  - 返回值：[u8]
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:bytes
+  - 返回值：usize
     
-- #### lock_account
+- #### lock_account 加锁
   - 参数：ptr *mut usize,size usize
-  - 返回值：[u8]
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:OptionLock
+  - 返回值：usize
   
-- #### unlock_account
+- #### unlock_account 解锁
   - 参数：ptr *mut usize,size usize
-  - 返回值：[u8]
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:OptionLock
+  - 返回值：usize
 
 ### Actor 接口
 
 - #### sign_message
   - 参数：ptr *mut usize,size usize
-  - 返回值：[u8]
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:Sign
+  - 返回值：usize
     
 - #### get_account
   - 参数：ptr *mut usize,size usize
+    - ptr:无符号整数指针
+    - size:数据的长度
+    - 指针数据格式:bytes
   - 返回值：[u8]
+    - Keypair
