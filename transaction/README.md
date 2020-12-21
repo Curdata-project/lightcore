@@ -1,25 +1,55 @@
 # Transaction
 
-交易管理模块
+事务管理模块
 
-## 交易协议
+事务指的是对状态进行修改的原子操作。
 
-### 简单单方交易
+## 数据结构
 
-即A状态转移单方面给B。
+```protobuf
+syntax = "proto3";
+
+// Input of transaction.
+message TranscationInput {
+  bytes arguments = 1; // use these arguments to verify contract.
+  SignedState state = 2;
+}
+
+// Output of transaction.
+message TranscationOutput {
+  uint64 size = 1; // Size of state.
+  bytes state = 2; // State data.
+  bytes owner = 3; // Owner's cert
+  bytes script = 4; // Smart contract support.
+}
+
+// Signed Transaction
+message Transaction {
+  sint64 timestamp = 1;
+  repeated TranscationInput inputs = 2;
+  repeated TranscationOutput outputs = 3;
+}
+
+```
+
+## 协议
+
+### 单方简单事务
+
+即A状态转移单方面给B，A直接完成交易体。
 
 ```mermaid
 sequenceDiagram
-  participant a as 交易发起者
-  participant b as 交易接收者
+  participant a as 事务发起者
+  participant b as 事务接收者
 
-  a -> a: 生成上下文同步信息，构造交易信息，进行签名
-  a -> b: 发送同步信息
-  b -> b: 进行上下文验证，构造交易信息
-  b -> a: 回发交易信息
+  a -> a: 构造交易请求体，进行签名
+  a -> b: 发送交易体
+  b -> b: 验证交易体，进行签名
+  b -> a: 回发确认信息
 ```
 
-#### 数据结构
+### 双方简单事务
 
 ### 多方交易协议
 
@@ -29,3 +59,11 @@ TODO:
 
 ### 数据库结构
 
+TODO:
+
+### RPC接口
+
+- list_txs
+- get_tx
+- send_tx
+- send_raw_tx
