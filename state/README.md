@@ -14,17 +14,15 @@ message State {
   uint64 size = 1; // Size of state.
   bytes state = 2; // State data.
   bytes owner = 3; // Owner's cert
-  bytes script = 4; // Smart contract support.
-  bytes witness = 5; // Witness's cert.
+  bytes lock = 4; // Unlock script.
+  bytes valid = 5; // valid script.
 }
 
 // Signed State
 message SignedState {
   bytes id = 1; // id = H(state)
   State state = 2; // State
-  bytes signature = 3; // signature = Sign(state, witeness's sk), notice: this field maybe remove later.
 }
-
 ```
 
 ### 数据库结构
