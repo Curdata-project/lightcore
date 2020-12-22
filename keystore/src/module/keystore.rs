@@ -200,6 +200,37 @@ impl<'a> MessageWrite for Keystore<'a> {
 }
 
 #[derive(Debug, Default, PartialEq, Clone)]
+pub struct KeystoreList<'a> {
+    pub keystore_list: Vec<Keypair<'a>>,
+}
+
+impl<'a> MessageRead<'a> for KeystoreList<'a> {
+    fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
+        let mut msg = Self::default();
+        while !r.is_eof() {
+            match r.next_tag(bytes) {
+                Ok(10) => msg.keystore_list.push(r.read_message::<Keypair>(bytes)?),
+                Ok(t) => { r.read_unknown(bytes, t)?; }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(msg)
+    }
+}
+
+impl<'a> MessageWrite for KeystoreList<'a> {
+    fn get_size(&self) -> usize {
+        0
+        + self.keystore_list.iter().map(|s| 1 + sizeof_len((s).get_size())).sum::<usize>()
+    }
+
+    fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
+        for s in &self.keystore_list { w.write_with_tag(10, |w| w.write_message(s))?; }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Sign<'a> {
     pub account: Cow<'a, [u8]>,
     pub message: Cow<'a, str>,

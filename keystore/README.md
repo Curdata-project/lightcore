@@ -46,7 +46,12 @@ message Keystore{
   bytes public_key = 5; // 公钥
   bytes secret_key = 6; // 私钥
   bytes cert = 7; // 证书
-  string create_date = 8; // 生成时间
+   create_date = 8; // 生成时间
+}
+
+//数据库数据list
+message KeystoreList{
+  repeated Keypair keystore_list = 1;
 }
 
 // 签名结构体
@@ -86,56 +91,60 @@ message OptionLock{
     - page:无符号整数 页数
     - item:无符号整数 每页条数
     - order:无符号整数 0 正序 1倒序
-  - 返回值：[u8]
-    - KeypairDisplayList
+    - cb:callback(*p, usize) *p是KeystoreList bytes的指针，usize是KeystoreList bytes的长度
+      - return:KeystoreList bytes
     
 - #### get_account
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据原格式:bytes
-  - 返回值：[u8]
-    - KeypairDisplay
+      - 指针数据原格式:bytes
+    - cb:callback(*p, usize)
+      - return:KeypairDisplay bytes
   
 - #### new_account 生成账户
-  - 返回值：[u8]
-    - KeypairDisplay
+    - cb:callback(*p, usize)
+      - return:KeypairDisplay bytes
   
 - #### import_account 导入账户
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:Keypair
-  - 返回值：usize
+      - 指针数据格式:Keypair
+    - cb:callback(usize)
+      - return:usize 
   
 - #### export_accounts 导出账户
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：[u8]
-    - Keypair
+      - 指针数据格式:bytes
+    - cb:callback(*p, usize)
+      - return:Keypair bytes
   
 - #### sign_message 签名
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：usize
+     - 指针数据格式:bytes
+    - cb:callback(usize)
+      - return:usize 
     
 - #### lock_account 加锁
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:OptionLock
-  - 返回值：usize
+      - 指针数据格式:OptionLock
+    - cb:callback(usize)
+      - return:usize 
   
 - #### unlock_account 解锁
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:OptionLock
-  - 返回值：usize
+      - 指针数据格式:OptionLock
+    - cb:callback(usize)
+      - return:usize 
 
 ### Actor 接口
 
@@ -143,13 +152,14 @@ message OptionLock{
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:Sign
-  - 返回值：usize
+      - 指针数据格式:Sign
+    - cb:callback(usize)
+      - return:usize 
     
 - #### get_account
   - 参数：ptr *mut usize,size usize
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：[u8]
-    - Keypair
+      - 指针数据格式:bytes
+  - cb:callback(*p, usize)
+    - return:Keypair bytes
