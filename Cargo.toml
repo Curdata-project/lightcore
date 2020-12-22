@@ -5,3 +5,7 @@ members = [
     'state',
     'contract',
 ]
+
+[profile.release] 
+lto = true 
+opt-level = 's'
