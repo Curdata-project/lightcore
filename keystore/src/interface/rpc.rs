@@ -1,20 +1,18 @@
 //! RPC interfce
-use alloc::vec::Vec;
 use alloc::slice;
+use alloc::vec::Vec;
 
 use crate::proto;
 
-extern "C"{
-    fn _callback_index_ptr_size(index:usize, ptr: *const u8, size:usize);
+extern "C" {
+    fn _callback_index_ptr_size(index: usize, ptr: *const u8, size: usize);
     // fn _callback_index_args()
 }
 
 /// 分页获取list
 //TODO 那此处的参数应该要有个callback，最后我在把这个callback和数据都传回去
 #[no_mangle]
-pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize,index: usize){
-
-
+pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize, index: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
         let sql = alloc::format!(
@@ -26,9 +24,8 @@ pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize,index: 
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
         //将str rpc反序列化
-        let keystore_list_result = quick_protobuf::deserialize_from_slice::<
-            proto::keystore::KeystoreList,
-        >(v.as_slice());
+        let keystore_list_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::KeystoreList>(v.as_slice());
 
         if keystore_list_result.as_ref().err().is_some() {
             return;
@@ -64,23 +61,26 @@ pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize,index: 
         }
 
         //调用js的callback方法通知回去
-        unsafe{
-            _callback_index_ptr_size(index,keystore_display_list_bytes.as_ptr(),keystore_display_list_bytes.len());
+        unsafe {
+            _callback_index_ptr_size(
+                index,
+                keystore_display_list_bytes.as_ptr(),
+                keystore_display_list_bytes.len(),
+            );
         };
     });
 }
 
 /// 根据account获取信息
 #[no_mangle]
-pub extern "C" fn _get_account(ptr: *mut u8,size: usize,index:usize) {
-
+pub extern "C" fn _get_account(ptr: *mut u8, size: usize, index: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
 
     runtime.spawn(async move {
-        let s = unsafe {slice::from_raw_parts(ptr, size)};
+        let s = unsafe { slice::from_raw_parts(ptr, size) };
         let hex_str = hex::encode(s.to_vec());
-    
-        let sql = alloc::format!(r#"select * from keystore where account = "{}""#,hex_str);
+
+        let sql = alloc::format!(r#"select * from keystore where account = "{}""#, hex_str);
 
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
@@ -88,9 +88,8 @@ pub extern "C" fn _get_account(ptr: *mut u8,size: usize,index:usize) {
             return;
         }
 
-        let keystore_result = quick_protobuf::deserialize_from_slice::<
-            proto::keystore::Keypair,
-        >(v.as_slice());
+        let keystore_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(v.as_slice());
 
         if keystore_result.as_ref().err().is_some() {
             return;
@@ -103,8 +102,9 @@ pub extern "C" fn _get_account(ptr: *mut u8,size: usize,index:usize) {
         keypair_display.public_key = keystore.public_key;
         keypair_display.type_pb = keystore.type_pb;
 
-        let out:Vec<u8> = Vec::new();
-        let serialize_result = quick_protobuf::serialize_into_slice(&keypair_display, out.as_mut_slice());
+        let out: Vec<u8> = Vec::new();
+        let serialize_result =
+            quick_protobuf::serialize_into_slice(&keypair_display, out.as_mut_slice());
 
         if serialize_result.as_ref().err().is_some() {
             return;
@@ -113,9 +113,8 @@ pub extern "C" fn _get_account(ptr: *mut u8,size: usize,index:usize) {
         unsafe {
             _callback_index_ptr_size(index, out.as_ptr(), out.len());
         }
-    
     });
 }
 
 #[no_mangle]
-pub extern "C" fn _new_account
+pub extern "C" fn _new_account(ptr: *mut u8, size: usize, index: usize) {}

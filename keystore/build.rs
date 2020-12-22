@@ -51,5 +51,3 @@ fn main() {
     };
     FileDescriptor::write_proto(&config).unwrap();
 }
-
-
