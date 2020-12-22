@@ -9,6 +9,6 @@ mod tests {
         let kp = module::keystore::Keypair::default();
 
         let mut slice:Vec<u8> = Vec::new();
-        quick_protobuf::serialize_into_slice(&kp,slice.as_mut_slice());
+        quick_protobuf::serialize_into_slice(&kp,slice.as_mut_slice()).unwrap();
     }
 }
