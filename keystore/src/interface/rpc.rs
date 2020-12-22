@@ -102,7 +102,7 @@ pub extern "C" fn _get_account(ptr: *mut u8, size: usize, index: usize) {
         keypair_display.public_key = keystore.public_key;
         keypair_display.type_pb = keystore.type_pb;
 
-        let out: Vec<u8> = Vec::new();
+        let mut out: Vec<u8> = Vec::new();
         let serialize_result =
             quick_protobuf::serialize_into_slice(&keypair_display, out.as_mut_slice());
 
@@ -117,4 +117,4 @@ pub extern "C" fn _get_account(ptr: *mut u8, size: usize, index: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn _new_account(ptr: *mut u8, size: usize, index: usize) {}
+pub extern "C" fn _new_account(_ptr: *mut u8, _size: usize, _index: usize) {}

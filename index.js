@@ -7,7 +7,7 @@ const modules = {
         expose: [
             {
                 'type': 'callback',
-                'name': 'list_accounts',
+                'name': '_list_accounts',
                 'args': [
                     { 'name': 'page', 'type': 'number' },
                     { 'name': 'item', 'type': 'number' },
@@ -21,22 +21,24 @@ const modules = {
             },
             {
                 'type': 'callback',
-                'name': 'get_account',
+                'name': '_get_account',
                 'args': [
                     { 'name': 'account', 'type': 'bytes' },
                 ],
                 'return': {
                     'type': 'proto',
-                    'proto': 'keystore/proto/KeypairDisplay'
+                    'proto': 'keystore/proto/keystore.proto',
+                    'message':'KeypairDisplay'
                 }
             },
             {
                 'type': 'callback',
-                'name': 'new_account',
+                'name': '_new_account',
                 'args': [],
                 'return': {
                     'type': 'proto',
-                    'proto': 'keystore/proto/KeypairDisplay'
+                    'proto': 'keystore/proto/keystore.proto',
+                    'message': 'KeypairDisplay'
                 }
             },
         ],
