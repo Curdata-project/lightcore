@@ -3,7 +3,7 @@ name = "keystore"
 version = "0.1.0"
 authors = ["tiannian <dtiannian@aliyun.com>"]
 edition = "2018"
-
+build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib] 
@@ -18,3 +18,8 @@ mw-rt = { git = "https://github.com/Curdata-project/marrow"}
 mw-std = { git = "https://github.com/Curdata-project/marrow"}
 wee_alloc = "0.4"
 quick-protobuf = {version = "0.8.0", default-features = false}
+hex = { version = "0.4", default-features = false }
+
+[build-dependencies]
+pb-rs = "0.9.1"
+protobuf-codegen-pure = "2.18.1"

@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::string::String;
 
 mod interface;
-mod module;
+mod proto;
 mod sql;
 mod test;
 
