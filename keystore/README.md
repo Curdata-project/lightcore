@@ -46,7 +46,12 @@ message Keystore{
   bytes public_key = 5; // 公钥
   bytes secret_key = 6; // 私钥
   bytes cert = 7; // 证书
-  string create_date = 8; // 生成时间
+   create_date = 8; // 生成时间
+}
+
+//数据库数据list
+message KeystoreList{
+  repeated Keypair keystore_list = 1;
 }
 
 // 签名结构体
@@ -82,74 +87,70 @@ message OptionLock{
 ### RPC 接口
 
 - #### list_accounts 
-  - 参数：page usize,item usize,order usize
-    - page:无符号整数 页数
-    - item:无符号整数 每页条数
-    - order:无符号整数 0 正序 1倒序
-  - 返回值：[u8]
-    - KeypairDisplayList
+  - 参数：page number,item number,order number
+    - page: 页数
+    - item: 每页条数
+    - order: 0 正序 1倒序
+    - index: 下标
+      - return:KeystoreList proto bytes
     
 - #### get_account
-  - 参数：ptr *mut usize,size usize
-    - ptr:无符号整数指针
-    - size:数据的长度
-    - 指针数据原格式:bytes
-  - 返回值：[u8]
-    - KeypairDisplay
+  - 参数：ptr number,size number
+    - ptr: 指针
+    - size: 长度
+      - return:KeypairDisplay proto bytes
   
 - #### new_account 生成账户
-  - 返回值：[u8]
-    - KeypairDisplay
+    - 参数：index number
+      - index：下标
+      - return:KeypairDisplay proto bytes
   
 - #### import_account 导入账户
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:Keypair
-  - 返回值：usize
+    - index：下标
+      - return:usize 
   
 - #### export_accounts 导出账户
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：[u8]
-    - Keypair
+    - index：下标
+      - return:Keypair proto bytes
   
 - #### sign_message 签名
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：usize
+    - index：下标
+      - return:usize 
     
 - #### lock_account 加锁
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:OptionLock
-  - 返回值：usize
+    - index：下标
+      - return:usize 
   
 - #### unlock_account 解锁
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:OptionLock
-  - 返回值：usize
+    - index：下标
+      - return:usize 
 
 ### Actor 接口
 
 - #### sign_message
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:Sign
-  - 返回值：usize
+    - index：下标
+      - return:usize 
     
 - #### get_account
-  - 参数：ptr *mut usize,size usize
+  - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
-    - 指针数据格式:bytes
-  - 返回值：[u8]
-    - Keypair
+      - return:Keypair proto bytes

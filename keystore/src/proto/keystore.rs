@@ -1,13 +1,3 @@
-// Automatically generated rust module for 'keystore.proto' file
-
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(unused_imports)]
-#![allow(unknown_lints)]
-#![allow(clippy::all)]
-#![cfg_attr(rustfmt, rustfmt_skip)]
-
 
 use alloc::vec::Vec;
 use alloc::borrow::Cow;
@@ -195,6 +185,37 @@ impl<'a> MessageWrite for Keystore<'a> {
         if self.secret_key != Cow::Borrowed(b"") { w.write_with_tag(50, |w| w.write_bytes(&**&self.secret_key))?; }
         if self.cert != Cow::Borrowed(b"") { w.write_with_tag(58, |w| w.write_bytes(&**&self.cert))?; }
         if self.create_date != "" { w.write_with_tag(66, |w| w.write_string(&**&self.create_date))?; }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct KeystoreList<'a> {
+    pub keystore_list: Vec<Keypair<'a>>,
+}
+
+impl<'a> MessageRead<'a> for KeystoreList<'a> {
+    fn from_reader(r: &mut BytesReader, bytes: &'a [u8]) -> Result<Self> {
+        let mut msg = Self::default();
+        while !r.is_eof() {
+            match r.next_tag(bytes) {
+                Ok(10) => msg.keystore_list.push(r.read_message::<Keypair>(bytes)?),
+                Ok(t) => { r.read_unknown(bytes, t)?; }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(msg)
+    }
+}
+
+impl<'a> MessageWrite for KeystoreList<'a> {
+    fn get_size(&self) -> usize {
+        0
+        + self.keystore_list.iter().map(|s| 1 + sizeof_len((s).get_size())).sum::<usize>()
+    }
+
+    fn write_message<W: WriterBackend>(&self, w: &mut Writer<W>) -> Result<()> {
+        for s in &self.keystore_list { w.write_with_tag(10, |w| w.write_message(s))?; }
         Ok(())
     }
 }

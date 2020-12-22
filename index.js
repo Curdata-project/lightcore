@@ -27,7 +27,8 @@ const modules = {
                 ],
                 'return': {
                     'type': 'proto',
-                    'proto': 'keystore/proto/KeypairDisplay'
+                    'proto': 'keystore/proto/keystore.proto',
+                    'message':'KeypairDisplay'
                 }
             },
             {
@@ -36,7 +37,8 @@ const modules = {
                 'args': [],
                 'return': {
                     'type': 'proto',
-                    'proto': 'keystore/proto/KeypairDisplay'
+                    'proto': 'keystore/proto/keystore.proto',
+                    'message': 'KeypairDisplay'
                 }
             },
         ],
