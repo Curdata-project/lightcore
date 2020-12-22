@@ -86,7 +86,7 @@ message OptionLock{
 
 ### RPC 接口
 
-- #### _list_accounts 
+- #### list_accounts 
   - 参数：page number,item number,order number
     - page: 页数
     - item: 每页条数
@@ -94,46 +94,46 @@ message OptionLock{
     - index: 下标
       - return:KeystoreList proto bytes
     
-- #### _get_account
+- #### get_account
   - 参数：ptr number,size number
     - ptr: 指针
     - size: 长度
       - return:KeypairDisplay proto bytes
   
-- #### _new_account 生成账户
+- #### new_account 生成账户
     - 参数：index number
       - index：下标
       - return:KeypairDisplay proto bytes
   
-- #### _import_account 导入账户
+- #### import_account 导入账户
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
     - index：下标
       - return:usize 
   
-- #### _export_accounts 导出账户
+- #### export_accounts 导出账户
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
     - index：下标
       - return:Keypair proto bytes
   
-- #### _sign_message 签名
+- #### sign_message 签名
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
     - index：下标
       - return:usize 
     
-- #### _lock_account 加锁
+- #### lock_account 加锁
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
     - index：下标
       - return:usize 
   
-- #### _unlock_account 解锁
+- #### unlock_account 解锁
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
@@ -142,14 +142,14 @@ message OptionLock{
 
 ### Actor 接口
 
-- #### _sign_message
+- #### sign_message
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度
     - index：下标
       - return:usize 
     
-- #### _get_account
+- #### get_account
   - 参数：ptr *mut number,size number
     - ptr:无符号整数指针
     - size:数据的长度

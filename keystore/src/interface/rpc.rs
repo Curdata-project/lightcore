@@ -12,7 +12,7 @@ extern "C" {
 /// 分页获取list
 //TODO 那此处的参数应该要有个callback，最后我在把这个callback和数据都传回去
 #[no_mangle]
-pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize, index: usize) {
+pub extern "C" fn list_accounts(page: usize, item: usize, _order: usize, index: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
         let sql = alloc::format!(
@@ -73,7 +73,7 @@ pub extern "C" fn _list_accounts(page: usize, item: usize, _order: usize, index:
 
 /// 根据account获取信息
 #[no_mangle]
-pub extern "C" fn _get_account(ptr: *mut u8, size: usize, index: usize) {
+pub extern "C" fn get_account(ptr: *mut u8, size: usize, index: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
 
     runtime.spawn(async move {
@@ -117,4 +117,6 @@ pub extern "C" fn _get_account(ptr: *mut u8, size: usize, index: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn _new_account(_ptr: *mut u8, _size: usize, _index: usize) {}
+pub extern "C" fn new_account(_ptr: *mut u8, _size: usize, _index: usize) {
+
+}

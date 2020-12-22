@@ -7,7 +7,7 @@ const modules = {
         expose: [
             {
                 'type': 'callback',
-                'name': '_list_accounts',
+                'name': 'list_accounts',
                 'args': [
                     { 'name': 'page', 'type': 'number' },
                     { 'name': 'item', 'type': 'number' },
@@ -21,7 +21,7 @@ const modules = {
             },
             {
                 'type': 'callback',
-                'name': '_get_account',
+                'name': 'get_account',
                 'args': [
                     { 'name': 'account', 'type': 'bytes' },
                 ],
@@ -33,7 +33,7 @@ const modules = {
             },
             {
                 'type': 'callback',
-                'name': '_new_account',
+                'name': 'new_account',
                 'args': [],
                 'return': {
                     'type': 'proto',
