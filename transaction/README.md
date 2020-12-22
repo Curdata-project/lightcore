@@ -20,7 +20,7 @@ message TranscationOutput {
   uint64 size = 1; // Size of state.
   bytes state = 2; // State data.
   bytes owner = 3; // Owner's cert
-  bytes script = 4; // Smart contract support.
+  bytes lock = 4; // Smart contract support.
 }
 
 // Signed Transaction

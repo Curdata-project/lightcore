@@ -2,5 +2,10 @@
 members = [
     'keystore',
     'transaction',
-    'state'
+    'state',
+    'contract',
 ]
+
+[profile.release] 
+lto = true 
+opt-level = 's'
