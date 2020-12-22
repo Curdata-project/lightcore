@@ -2,5 +2,6 @@
 members = [
     'keystore',
     'transaction',
-    'state'
+    'state',
+    'contract',
 ]
