@@ -14,14 +14,16 @@ message State {
   uint64 size = 1; // Size of state.
   bytes state = 2; // State data.
   bytes owner = 3; // Owner's cert
-  bytes lock = 4; // Unlock script.
-  bytes valid = 5; // valid script.
+  bytes lock = 4; // Unlock script. When state transact, you must use this script to unlock.
+  bytes valid = 5; // Valid script. Use this script to valid this state.
 }
 
 // Signed State
 message SignedState {
   bytes id = 1; // id = H(state)
   State state = 2; // State
+  bytes witness = 3; // Witness cert.
+  bytes signature = 4; // Signature for witness.
 }
 ```
 

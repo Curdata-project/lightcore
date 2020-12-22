@@ -8,10 +8,6 @@ build = "build.rs"
 
 [lib] 
 crate-type = ["cdylib"] 
- 
-[profile.release] 
-lto = true 
-opt-level = 's' 
 
 [dependencies]
 mw-rt = { git = "https://github.com/Curdata-project/marrow"}

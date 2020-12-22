@@ -1,5 +1,5 @@
 [package]
-name = "transaction"
+name = "contract"
 version = "0.1.0"
 authors = ["tiannian <dtiannian@aliyun.com>"]
 edition = "2018"
