@@ -9,9 +9,30 @@ const modules = {
                 'type': 'callback',
                 'name': 'list_accounts',
                 'args': [
-                    { 'name': 'page', 'type': 'number' },
-                    { 'name': 'item', 'type': 'number' },
-                    { 'name': 'order', 'type': 'number' },
+                    {
+                        'name': 'page',
+                        'type': 'number',
+                        'attr': {
+                            'proto': '',
+                            'message': '',
+                        }
+                    },
+                    {
+                        'name': 'item',
+                        'type': 'number',
+                        'attr': {
+                            'proto': '',
+                            'message': '',
+                        }
+                    },
+                    {
+                        'name': 'order',
+                        'type': 'number',
+                        'attr': {
+                            'proto': '',
+                            'message': '',
+                        }
+                    },
                 ],
                 'return': {
                     'type': 'proto',
@@ -23,12 +44,38 @@ const modules = {
                 'type': 'callback',
                 'name': 'get_account',
                 'args': [
-                    { 'name': 'account', 'type': 'bytes' },
+                    {
+                        'name': 'account',
+                        'type': 'bytes',
+                        'attr': {
+                            'proto': '',
+                            'message': '',
+                        }
+                    },
                 ],
                 'return': {
                     'type': 'proto',
                     'proto': 'keystore/proto/keystore.proto',
-                    'message':'KeypairDisplay'
+                    'message': 'KeypairDisplay'
+                }
+            },
+            {
+                'type': 'callback',
+                'name': 'import_account',
+                'args': [
+                    {
+                        'name': 'keypair',
+                        'type': 'proto',
+                        'attr': {
+                            'proto': 'keystore/proto/keystore.proto',
+                            'message': 'Keypair.proto'
+                        }
+                    }
+                ],
+                'return': {
+                    'type': 'number',
+                    'proto': '',
+                    'message': ''
                 }
             },
             {
