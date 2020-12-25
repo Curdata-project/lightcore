@@ -16,6 +16,7 @@ Account -> Keypair
   - cert
   - secret_encrypt_type 私钥 加密类型
   - create_date 创建时间
+  - nonce 随机数
   
 ### proto
 
@@ -40,13 +41,15 @@ message KeyPairList {
 // 数据库对应字段
 message Keystore{
   bytes account = 1; // 账户
-  bytes encrypt_code = 2; // 加密码，用户给/随机生成，用来加密公钥和seed
-  string public_encrypt_type = 3; // 公钥+种子 加密类型
-  string secret_encrypt_type = 4; // 私钥 加密类型
-  bytes public_key = 5; // 公钥
-  bytes secret_key = 6; // 私钥
-  bytes cert = 7; // 证书
-   create_date = 8; // 生成时间
+  bytes seed = 2;
+  bytes encrypt_code = 3; // 加密码，用户给/随机生成，用来加密公钥和seed
+  string public_encrypt_type = 4; // 公钥+种子 加密类型
+  string secret_encrypt_type = 5; // 私钥 加密类型
+  bytes public_key = 6; // 公钥
+  bytes secret_key = 7; // 私钥
+  bytes cert = 8; // 证书
+  int64 timestamp = 9; // 生成时间
+  bytes nonce = 10; //随机数
 }
 
 //数据库数据list
