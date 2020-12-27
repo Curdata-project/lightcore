@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::module;
+    use crate::proto;
     use alloc::vec::Vec;
 
     #[test]
     fn rpc_test() {
-        let kp = module::keystore::Keypair::default();
+        let kp = proto::keystore::Keypair::default();
 
         let mut slice: Vec<u8> = Vec::new();
         //序列化
@@ -14,6 +14,6 @@ mod tests {
         v.push(0);
         let s = v.as_slice();
         //反序列化
-        let _kp = quick_protobuf::deserialize_from_slice::<module::keystore::Keypair>(s);
+        let _kp = quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(s);
     }
 }
