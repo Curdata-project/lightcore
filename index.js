@@ -12,26 +12,14 @@ const modules = {
                     {
                         'name': 'page',
                         'type': 'number',
-                        'attr': {
-                            'proto': '',
-                            'message': '',
-                        }
                     },
                     {
                         'name': 'item',
                         'type': 'number',
-                        'attr': {
-                            'proto': '',
-                            'message': '',
-                        }
                     },
                     {
                         'name': 'order',
                         'type': 'number',
-                        'attr': {
-                            'proto': '',
-                            'message': '',
-                        }
                     },
                 ],
                 'return': {
@@ -47,10 +35,6 @@ const modules = {
                     {
                         'name': 'account',
                         'type': 'bytes',
-                        'attr': {
-                            'proto': '',
-                            'message': '',
-                        }
                     },
                 ],
                 'return': {

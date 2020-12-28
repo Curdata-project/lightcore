@@ -1,18 +1,12 @@
 //! RPC interfce
+use crate::{cypher, proto};
 use alloc::slice;
+use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::proto;
-
-extern "C" {
-    fn _callback_index_ptr_size(index: usize, ptr: *const u8, size: usize);
-    // fn _callback_index_args()
-}
-
 /// 分页获取list
-//TODO 那此处的参数应该要有个callback，最后我在把这个callback和数据都传回去
 #[no_mangle]
-pub extern "C" fn list_accounts(page: usize, item: usize, _order: usize, index: usize) {
+pub extern "C" fn list_accounts(index: usize, page: usize, item: usize, _order: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
         let sql = alloc::format!(
@@ -27,7 +21,10 @@ pub extern "C" fn list_accounts(page: usize, item: usize, _order: usize, index: 
         let keystore_list_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::KeystoreList>(v.as_slice());
 
-        if keystore_list_result.as_ref().err().is_some() {
+        // 如果错误就在debug下打印解析错误
+        if keystore_list_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", keystore_list_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -42,7 +39,7 @@ pub extern "C" fn list_accounts(page: usize, item: usize, _order: usize, index: 
             keystore_display.account = value.account;
             keystore_display.cert = value.cert;
             keystore_display.public_key = value.public_key;
-            keystore_display.type_pb = value.type_pb;
+            keystore_display.ty = value.ty;
 
             keystore_display_list
                 .keypair_display_list
@@ -50,30 +47,21 @@ pub extern "C" fn list_accounts(page: usize, item: usize, _order: usize, index: 
         }
 
         //序列化
-        let mut keystore_display_list_bytes: Vec<u8> = Vec::new();
-        let serialize_result = quick_protobuf::serialize_into_slice(
-            &keystore_display_list,
-            keystore_display_list_bytes.as_mut_slice(),
-        );
+        let mut out: Vec<u8> = Vec::new();
+        let serialize_result =
+            quick_protobuf::serialize_into_slice(&keystore_display_list, out.as_mut_slice());
 
-        if serialize_result.as_ref().err().is_some() {
+        if serialize_result.as_ref().is_err() {
             return;
         }
 
-        //调用js的callback方法通知回去
-        unsafe {
-            _callback_index_ptr_size(
-                index,
-                keystore_display_list_bytes.as_ptr(),
-                keystore_display_list_bytes.len(),
-            );
-        };
+        mw_std::notify::notify_ptr_size(index, &out);
     });
 }
 
 /// 根据account获取信息
 #[no_mangle]
-pub extern "C" fn get_account(ptr: *mut u8, size: usize, index: usize) {
+pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
 
     runtime.spawn(async move {
@@ -85,38 +73,639 @@ pub extern "C" fn get_account(ptr: *mut u8, size: usize, index: usize) {
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
         if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        let keystore_result =
+        let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(v.as_slice());
 
-        if keystore_result.as_ref().err().is_some() {
+        if deserialize_result.as_ref().err().is_some() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        let keystore = keystore_result.unwrap();
+        let keystore = deserialize_result.unwrap();
         let mut keypair_display = proto::keystore::KeypairDisplay::default();
         keypair_display.account = keystore.account;
         keypair_display.cert = keystore.cert;
         keypair_display.public_key = keystore.public_key;
-        keypair_display.type_pb = keystore.type_pb;
+        keypair_display.ty = keystore.ty;
 
         let mut out: Vec<u8> = Vec::new();
         let serialize_result =
             quick_protobuf::serialize_into_slice(&keypair_display, out.as_mut_slice());
 
-        if serialize_result.as_ref().err().is_some() {
+        if serialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", serialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        unsafe {
-            _callback_index_ptr_size(index, out.as_ptr(), out.len());
+        mw_std::notify::notify_ptr_size(index, &out);
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn import_account(index: usize, ptr: *mut u8, size: usize) {
+    let runtime = mw_rt::runtime::Runtime::new();
+
+    runtime.spawn(async move {
+        let s = unsafe { slice::from_raw_parts(ptr, size) };
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(s);
+
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        let keypair = deserialize_result.unwrap();
+
+        let hex_account = hex::encode(keypair.account);
+        let hex_secret_key = hex::encode(keypair.secret_key);
+        let hex_public_key = hex::encode(keypair.public_key);
+        let hex_seed = hex::encode(keypair.seed);
+        let hex_encrypt_code = hex::encode(keypair.encrypt_code);
+        let hex_nonce = hex::encode(keypair.nonce);
+        let public_encrypt_type = "SM2";
+        let secret_encrypt_type = "ED25519";
+        let timestamp = mw_std::time::get_timestamp();
+        let cert = "";
+
+        let sql = alloc::format!(
+            r#"
+        inser into keystore values(
+            "{}","{}","{}","{}","{}","{}","{}","{}",{},"{}"
+        )
+        "#,
+            hex_account,
+            hex_seed,
+            hex_encrypt_code,
+            public_encrypt_type,
+            secret_encrypt_type,
+            hex_public_key,
+            hex_secret_key,
+            cert,
+            timestamp,
+            hex_nonce,
+        );
+
+        let mut v = mw_std::sql::sql_execute(sql.as_str(), 0).await;
+
+        let str = unsafe { String::from_raw_parts(v.as_mut_ptr(), v.len(), v.len()) };
+
+        match str.as_str() {
+            "ok" => {
+                mw_std::notify::notify_number(index, 0);
+            }
+            "fail" => {
+                mw_std::notify::notify_number(index, 1);
+            }
+            _ => {}
+        };
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
+    let runtime = mw_rt::runtime::Runtime::new();
+    runtime.spawn(async move {
+        let s = unsafe { slice::from_raw_parts(ptr, size) };
+        let hex_account = hex::encode(s);
+
+        let sql = alloc::format!(
+            r#"select * from keystore where account = "{}""#,
+            hex_account
+        );
+        let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        let keystore = deserialize_result.unwrap();
+
+        let mut keypair = proto::keystore::Keypair::default();
+
+        keypair.account = keystore.account;
+        keypair.cert = keystore.cert;
+        keypair.public_key = keystore.public_key;
+        keypair.ty = keystore.secret_encrypt_type;
+        keypair.seed = keystore.seed;
+        keypair.secret_key = keystore.secret_key;
+
+        let mut out: Vec<u8> = Vec::new();
+        let serialize_result = quick_protobuf::serialize_into_slice(&keypair, out.as_mut_slice());
+        if serialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", serialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        };
+        mw_std::notify::notify_ptr_size(index, &out);
+    });
+}
+
+//TODO impl new_account func
+#[no_mangle]
+pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
+    let runtime = mw_rt::runtime::Runtime::new();
+    runtime.spawn(async move {
+        let secret = crate::cypher::ed_25519::Secret::gen().await;
+        // let encrypt_code = unsafe { slice::from_raw_parts(ptr, size) };
+
+        let s = unsafe { slice::from_raw_parts(ptr, size) };
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
+
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+
+        let account_msg = deserialize_result.unwrap();
+
+        let encrypt_code = account_msg.encrypt_code.as_ref();
+
+        let timestamp = mw_std::time::get_timestamp();
+        let nonce = mw_std::rand::gen_rand32().await;
+
+        let nonce = nonce.as_slice();
+
+        let secret_key = secret.secret_key.unwrap();
+
+        let public_key = secret.public_key.unwrap();
+
+        let seed = secret.seed.unwrap();
+
+        let secret_key_en =
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, secret_key.as_slice());
+
+        let public_key_en =
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, public_key.as_slice());
+
+        let seed_en = cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, seed.as_slice());
+
+        let encrypt_code_en =
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, encrypt_code);
+
+        let hex_account = hex::encode(account_msg.account.as_ref());
+        let hex_seed = hex::encode(seed_en.as_slice());
+        let hex_encrypt_code = hex::encode(encrypt_code_en.as_slice());
+        let public_encrypt_type = "SM2";
+        let secret_encrypt_type = "ED25519";
+        let hex_public_key = hex::encode(public_key_en.as_slice());
+        let hex_secret_key = hex::encode(secret_key_en.as_slice());
+        let cert = "";
+        let hex_nonce = hex::encode(nonce);
+
+        let sql = alloc::format!(
+            r#"
+        inser into keystore values(
+            "{}","{}","{}","{}","{}","{}","{}","{}",{},"{}"
+        )
+        "#,
+            hex_account,
+            hex_seed,
+            hex_encrypt_code,
+            public_encrypt_type,
+            secret_encrypt_type,
+            hex_public_key,
+            hex_secret_key,
+            cert,
+            timestamp,
+            hex_nonce,
+        );
+        //加锁
+        crate::STATEMAP.insert(account_msg.account.as_ref().to_vec(), 1);
+
+        let mut v = mw_std::sql::sql_execute(sql.as_str(), 0).await;
+
+        let str = unsafe { String::from_raw_parts(v.as_mut_ptr(), v.len(), v.len()) };
+
+        match str.as_str() {
+            "ok" => {
+                mw_std::notify::notify_number(index, 0);
+            }
+            "fail" => {
+                mw_std::notify::notify_number(index, 1);
+            }
+            _ => {}
+        };
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
+    // 1判断是否在库
+    // 2判断是否是解锁状态
+
+    let runtime = mw_rt::runtime::Runtime::new();
+
+    runtime.spawn(async move {
+        let s = unsafe { slice::from_raw_parts(ptr, size) };
+        let deserialize_result = quick_protobuf::deserialize_from_slice::<proto::keystore::Sign>(s);
+
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        let sign_msg = deserialize_result.unwrap();
+
+        let account_msg_op = sign_msg.account_msg.as_ref();
+
+        if account_msg_op.as_ref().is_none() {
+            mw_std::debug::println(crate::err::ACCOUNT_MSG_NONE);
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        let account_msg = account_msg_op.unwrap();
+
+        let account = account_msg.account.as_ref();
+
+        let encrypt_code = account_msg.encrypt_code.as_ref();
+
+        let hex_account = hex::encode(account);
+
+        let sql = alloc::format!(
+            r#"select * from keystore where account = "{}""#,
+            hex_account
+        );
+        let v = mw_std::sql::sql_execute(&sql, 1).await;
+
+        if v.len() == 0 {
+            return;
+        }
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
+
+        if deserialize_result.as_ref().err().is_some() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        let keystore = deserialize_result.unwrap();
+
+        match crate::STATEMAP.get(account.to_vec()) {
+            Some(v) => {
+                if v == 1 {
+                    mw_std::debug::println(crate::err::LOCKED);
+                    mw_std::notify::notify_ptr_size(index, &[]);
+                    return;
+                }
+            }
+            None => {
+                mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+                mw_std::notify::notify_ptr_size(index, &[]);
+                return;
+            }
+        };
+
+        let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
+            encrypt_code,
+            keystore.nonce.as_ref(),
+            keystore.encrypt_code.as_ref(),
+        );
+
+        // 判等
+        // 1 转string
+        // 2 遍历对比
+
+        let hex1 = hex::encode(encrypt_code_de.as_slice());
+        let hex2 = hex::encode(encrypt_code);
+
+        if hex1 != hex2 {
+            mw_std::debug::println(crate::err::ENCRYPT_CODE_MISMATCH);
+            mw_std::notify::notify_ptr_size(index, &[]);
+            return;
+        }
+
+        //解密public_key
+        let public_key = cypher::xchacha20::xchacha20_decryption(
+            encrypt_code,
+            keystore.nonce.as_ref(),
+            keystore.public_key.as_ref(),
+        );
+        //解密secret_key
+        let secret_key = cypher::xchacha20::xchacha20_decryption(
+            encrypt_code,
+            keystore.nonce.as_ref(),
+            keystore.secret_key.as_ref(),
+        );
+
+        let sign_op =
+            crate::cypher::ed_25519::sign(public_key, secret_key, sign_msg.message.as_ref());
+
+        match sign_op {
+            Some(v) => mw_std::notify::notify_ptr_size(index, v.as_slice()),
+            None => mw_std::notify::notify_ptr_size(index, Vec::new().as_slice()),
         }
     });
 }
 
 #[no_mangle]
-pub extern "C" fn new_account(_ptr: *mut u8, _size: usize, _index: usize) {
+pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
+    let s = unsafe { slice::from_raw_parts(ptr, size) };
+    let deserialize_result =
+        quick_protobuf::deserialize_from_slice::<proto::keystore::VerifySign>(s);
 
+    if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
+        return;
+    }
+
+    let verify_sign = deserialize_result.unwrap();
+    match verify_sign.VerfySign {
+        crate::proto::keystore::mod_VerifySign::OneOfVerfySign::AccountVerifySign(avs) => {
+            let runtime = mw_rt::runtime::Runtime::new();
+            let sign = avs.sign.clone();
+            if avs.account_msg.as_ref().is_none() {
+                mw_std::debug::println(crate::err::SIGN_MSG_NONE);
+                mw_std::notify::notify_number(index, 1);
+                return;
+            }
+
+            let account_msg = avs.account_msg.unwrap();
+            let msg = avs.message.clone();
+
+            runtime.spawn(async move {
+                let hex_account = hex::encode(account_msg.account.as_ref());
+
+                let encrypt_code = account_msg.encrypt_code.as_ref();
+
+                let sql = alloc::format!(
+                    r#"select * from keystore where account = "{}""#,
+                    hex_account
+                );
+                let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
+
+                if v.len() == 0 {
+                    mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+                    mw_std::notify::notify_number(index, 1);
+                    return;
+                }
+
+                let deserialize_result = quick_protobuf::deserialize_from_slice::<
+                    proto::keystore::Keystore,
+                >(v.as_slice());
+
+                if deserialize_result.as_ref().err().is_some() {
+                    mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+                    mw_std::notify::notify_number(index, 1);
+                    return;
+                }
+
+                let keystore = deserialize_result.unwrap();
+
+                let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
+                    encrypt_code,
+                    keystore.nonce.as_ref(),
+                    keystore.encrypt_code.as_ref(),
+                );
+
+                // 判等
+                // 1 转string
+                // 2 遍历对比
+
+                let hex1 = hex::encode(encrypt_code_de.as_slice());
+                let hex2 = hex::encode(encrypt_code);
+
+                if hex1 != hex2 {
+                    mw_std::debug::println(crate::err::ENCRYPT_CODE_MISMATCH);
+                    mw_std::notify::notify_number(index, 1);
+                    return;
+                }
+
+                // 解密public
+                let public_key = cypher::xchacha20::xchacha20_decryption(
+                    encrypt_code,
+                    keystore.nonce.as_ref(),
+                    keystore.public_key.as_ref(),
+                );
+
+                let verify_op = cypher::ed_25519::verify_sign(
+                    public_key.as_slice(),
+                    sign.as_ref(),
+                    msg.as_ref(),
+                );
+
+                match verify_op {
+                    Some(flag) => {
+                        if flag {
+                            mw_std::notify::notify_number(index, 0);
+                        } else {
+                            mw_std::notify::notify_number(index, 1);
+                        }
+                    }
+                    None => {
+                        mw_std::notify::notify_number(index, 1);
+                    }
+                };
+            });
+        }
+        crate::proto::keystore::mod_VerifySign::OneOfVerfySign::PubVerifySign(pvs) => {
+            let verify_op = cypher::ed_25519::verify_sign(
+                pvs.public_key.as_ref(),
+                pvs.sign.as_ref(),
+                pvs.message.as_ref(),
+            );
+            match verify_op {
+                Some(flag) => {
+                    if flag {
+                        mw_std::notify::notify_number(index, 0);
+                    } else {
+                        mw_std::notify::notify_number(index, 1);
+                    }
+                }
+                None => {
+                    mw_std::notify::notify_number(index, 1);
+                }
+            };
+        }
+        crate::proto::keystore::mod_VerifySign::OneOfVerfySign::None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
+    // let hex_str = hex::encode(s.to_vec());
+    let s = unsafe { slice::from_raw_parts(ptr, size) };
+    let deserialize_result =
+        quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
+
+    if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
+        return;
+    }
+
+    let account_msg = deserialize_result.unwrap();
+
+    //检查是否已经是加锁的状态
+    match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
+        Some(v) => {
+            if v == 1 {
+                mw_std::debug::println(crate::err::LOCKED);
+                mw_std::notify::notify_number(index, 1);
+                return;
+            }
+        }
+        None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+    };
+
+    let runtime = mw_rt::runtime::Runtime::new();
+    runtime.spawn(async move {
+        let hex_account = hex::encode(account_msg.account.as_ref());
+
+        let encrypt_code = account_msg.encrypt_code.as_ref();
+
+        let sql = alloc::format!(
+            r#"select * from keystore where account = "{}""#,
+            hex_account
+        );
+        let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
+
+        if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
+
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+
+        let keystore = deserialize_result.unwrap();
+
+        let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
+            encrypt_code,
+            keystore.nonce.as_ref(),
+            keystore.encrypt_code.as_ref(),
+        );
+
+        // 判等
+        // 1 转string
+        // 2 遍历对比
+
+        let hex1 = hex::encode(encrypt_code_de.as_slice());
+        let hex2 = hex::encode(encrypt_code);
+
+        if hex1 == hex2 {
+            //解锁
+            crate::STATEMAP.insert(account_msg.account.as_ref().to_vec(), 1);
+            mw_std::notify::notify_number(index, 0);
+        } else {
+            mw_std::notify::notify_number(index, 1);
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
+    let s = unsafe { slice::from_raw_parts(ptr, size) };
+    let deserialize_result =
+        quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
+
+    if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
+        return;
+    }
+    let account_msg = deserialize_result.unwrap();
+    //检查是否已经是解锁的状态
+    match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
+        Some(v) => {
+            if v == 0 {
+                mw_std::debug::println(crate::err::UNLOCKED);
+                mw_std::notify::notify_number(index, 1);
+                return;
+            }
+        }
+        None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+    };
+    let runtime = mw_rt::runtime::Runtime::new();
+    runtime.spawn(async move {
+        // let hex_str = hex::encode(s.to_vec());
+
+        let hex_account = hex::encode(account_msg.account.as_ref());
+
+        let encrypt_code = account_msg.encrypt_code.as_ref();
+
+        let sql = alloc::format!(
+            r#"select * from keystore where account = "{}""#,
+            hex_account
+        );
+        let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
+
+        if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+
+        let deserialize_result =
+            quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
+
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
+            return;
+        }
+
+        let keystore = deserialize_result.unwrap();
+
+        let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
+            encrypt_code,
+            keystore.nonce.as_ref(),
+            keystore.encrypt_code.as_ref(),
+        );
+
+        // 判等
+        // 1 转string
+        // 2 遍历对比
+
+        let hex1 = hex::encode(encrypt_code_de.as_slice());
+        let hex2 = hex::encode(encrypt_code);
+
+        if hex1 == hex2 {
+            //解锁
+            crate::STATEMAP.insert(account_msg.account.as_ref().to_vec(), 0);
+            mw_std::notify::notify_number(index, 0);
+        } else {
+            mw_std::notify::notify_number(index, 1);
+        }
+    });
 }
