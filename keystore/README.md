@@ -23,25 +23,73 @@ Account -> Keypair
 ```protobuf
 syntax = "proto3";
 
+// 对外rpc参数-------------------------------------------------------------------
+
 // 密钥对数据格式
 message Keypair {
   bytes account = 1; //账户
   bytes seed = 2; // 种子
   bytes secret_key = 3; // 密钥
   bytes public_key = 4; // 公钥
-  string type = 5; // 生成密钥的算法类型
+  string ty = 5; // 生成密钥的算法类型
+  bytes cert = 6; // 证书
+  bytes encrypt_code = 7; // 加密码
+  bytes nonce = 8; // 随机数
+}
+
+// 密钥对展示格式
+message KeypairDisplay{
+  bytes account = 1; //账户
+  bytes public_key = 4; // 公钥
+  string ty = 5; // 生成密钥的算法类型
   bytes cert = 6; // 证书
 }
 
 // 密钥对list数据格式
-message KeyPairList {
-  repeated Keypair keypair_list = 1; // 密钥对数组
+message KeypairDisplayList {
+  repeated KeypairDisplay keypair_display_list = 1; // 密钥对数组
 }
+
+// 账户信息
+message AccountMsg{
+  bytes account =1; //账户
+  bytes encrypt_code = 2; //对称加密key
+}
+
+message Sign {
+  AccountMsg account_msg = 1; //账户信息
+  bytes message = 2;
+}
+
+// 公共签名验证
+message PubVerifySign{
+  bytes public_key = 1; //公钥
+  bytes sign = 2; //签名
+  bytes message = 3; //需验证的信息
+}
+
+// 账户签名验证
+message AccountVerifySign{
+  AccountMsg account_msg = 1; //账户信息
+  bytes message = 2;// 需验证信息
+  bytes sign = 3; // 签名
+}
+
+// 签名体
+message VerifySign{
+  oneof VerfySign{
+    AccountVerifySign AccountVerifySign = 1; //账户签名验证
+    PubVerifySign PubVerifySign = 2; //公共签名验证
+  }
+}
+
+
+// 对内rpc参数----------------------------------------------------------------------
 
 // 数据库对应字段
 message Keystore{
   bytes account = 1; // 账户
-  bytes seed = 2;
+  bytes seed = 2; // 种子
   bytes encrypt_code = 3; // 加密码，用户给/随机生成，用来加密公钥和seed
   string public_encrypt_type = 4; // 公钥+种子 加密类型
   string secret_encrypt_type = 5; // 私钥 加密类型
@@ -57,17 +105,6 @@ message KeystoreList{
   repeated Keypair keystore_list = 1;
 }
 
-// 签名结构体
-message Sign{
-  bytes account = 1; //账户
-  string message = 2; //需签名的数据
-}
-
-// 解锁/上锁
-message OptionLock{
-  bytes account = 1;
-  string encrypt_code = 2; // 解锁/上锁码
-}
 
 ```
 
