@@ -219,7 +219,7 @@ pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
 pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
-        let secret = crate::cypher::ed_25519::gen_secret().await;
+        let secret = crate::cypher::ed_25519::Secret::gen().await;
         // let encrypt_code = unsafe { slice::from_raw_parts(ptr, size) };
 
         let s = unsafe { slice::from_raw_parts(ptr, size) };
@@ -249,15 +249,15 @@ pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
         let seed = secret.seed.unwrap();
 
         let secret_key_en =
-            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, secret_key.to_vec());
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, secret_key.as_slice());
 
         let public_key_en =
-            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, public_key.to_vec());
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, public_key.as_slice());
 
-        let seed_en = cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, seed.to_vec());
+        let seed_en = cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, seed.as_slice());
 
         let encrypt_code_en =
-            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, encrypt_code.to_vec());
+            cypher::xchacha20::xchacha20_encryption(encrypt_code, nonce, encrypt_code);
 
         let hex_account = hex::encode(account_msg.account.as_ref());
         let hex_seed = hex::encode(seed_en.as_slice());
@@ -314,8 +314,7 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
 
     runtime.spawn(async move {
         let s = unsafe { slice::from_raw_parts(ptr, size) };
-        let deserialize_result =
-            quick_protobuf::deserialize_from_slice::<proto::keystore::SignMsg>(s);
+        let deserialize_result = quick_protobuf::deserialize_from_slice::<proto::keystore::Sign>(s);
 
         if deserialize_result.as_ref().is_err() {
             mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
@@ -380,7 +379,7 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
         let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
             keystore.nonce.as_ref(),
-            keystore.encrypt_code.to_vec(),
+            keystore.encrypt_code.as_ref(),
         );
 
         // 判等
@@ -400,13 +399,13 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
         let public_key = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
             keystore.nonce.as_ref(),
-            keystore.public_key.to_vec(),
+            keystore.public_key.as_ref(),
         );
         //解密secret_key
         let secret_key = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
             keystore.nonce.as_ref(),
-            keystore.secret_key.to_vec(),
+            keystore.secret_key.as_ref(),
         );
 
         let sign_op =
@@ -436,23 +435,14 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
         crate::proto::keystore::mod_VerifySign::OneOfVerfySign::AccountVerifySign(avs) => {
             let runtime = mw_rt::runtime::Runtime::new();
             let sign = avs.sign.clone();
-            if avs.sign_msg.as_ref().is_none() {
+            if avs.account_msg.as_ref().is_none() {
                 mw_std::debug::println(crate::err::SIGN_MSG_NONE);
                 mw_std::notify::notify_number(index, 1);
                 return;
             }
 
-            let sign_msg = avs.sign_msg.unwrap();
-
-            if sign_msg.account_msg.as_ref().is_none() {
-                mw_std::debug::println(crate::err::ACCOUNT_MSG_NONE);
-                mw_std::notify::notify_number(index, 1);
-                return;
-            }
-
-            let account_msg = sign_msg.account_msg.unwrap();
-
-            let msg = sign_msg.message.clone();
+            let account_msg = avs.account_msg.unwrap();
+            let msg = avs.message.clone();
 
             runtime.spawn(async move {
                 let hex_account = hex::encode(account_msg.account.as_ref());
@@ -486,7 +476,7 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
                 let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
                     encrypt_code,
                     keystore.nonce.as_ref(),
-                    keystore.encrypt_code.to_vec(),
+                    keystore.encrypt_code.as_ref(),
                 );
 
                 // 判等
@@ -506,7 +496,7 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
                 let public_key = cypher::xchacha20::xchacha20_decryption(
                     encrypt_code,
                     keystore.nonce.as_ref(),
-                    keystore.public_key.to_vec(),
+                    keystore.public_key.as_ref(),
                 );
 
                 let verify_op = cypher::ed_25519::verify_sign(
@@ -619,7 +609,7 @@ pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
         let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
             keystore.nonce.as_ref(),
-            keystore.encrypt_code.to_vec(),
+            keystore.encrypt_code.as_ref(),
         );
 
         // 判等
@@ -700,7 +690,7 @@ pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
         let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
             keystore.nonce.as_ref(),
-            keystore.encrypt_code.to_vec(),
+            keystore.encrypt_code.as_ref(),
         );
 
         // 判等

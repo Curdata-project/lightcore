@@ -12,38 +12,40 @@ use sha2::{Digest, Sha512};
 #[derive(Debug, Clone)]
 pub struct Secret {
     pub seed: Option<Vec<u8>>,
-    pub secret_key: Option<[u8; 32]>,
-    pub public_key: Option<[u8; 32]>,
+    pub secret_key: Option<Vec<u8>>,
+    pub public_key: Option<Vec<u8>>,
 }
 
-pub async fn gen_secret() -> Secret {
-    let mut secret = Secret {
-        seed: None,
-        secret_key: None,
-        public_key: None,
-    };
+impl Secret {
+    pub async fn gen() -> Self {
+        let mut secret = Secret {
+            seed: None,
+            secret_key: None,
+            public_key: None,
+        };
 
-    let rand32 = mw_std::rand::gen_rand32().await;
+        let rand32 = mw_std::rand::gen_rand32().await;
 
-    let mut hasher = Sha512::new();
-    hasher.update(rand32.as_slice());
-    let rand64 = hasher.finalize();
+        let mut hasher = Sha512::new();
+        hasher.update(rand32.as_slice());
+        let rand64 = hasher.finalize();
 
-    let result_secret_key = SecretKey::from_bytes(&rand64.as_slice());
+        let result_secret_key = SecretKey::from_bytes(&rand64.as_slice());
 
-    if result_secret_key.as_ref().is_err() {
-        return secret;
+        if result_secret_key.as_ref().is_err() {
+            return secret;
+        }
+
+        let secret_key: SecretKey = result_secret_key.unwrap();
+
+        let public_key: PublicKey = (&secret_key).into();
+
+        secret.seed = Some(rand32);
+        secret.public_key = Some(public_key.to_bytes().to_vec());
+        secret.secret_key = Some(secret_key.to_bytes().to_vec());
+
+        secret
     }
-
-    let secret_key: SecretKey = result_secret_key.unwrap();
-
-    let public_key: PublicKey = (&secret_key).into();
-
-    secret.seed = Some(rand32);
-    secret.public_key = Some(public_key.to_bytes());
-    secret.secret_key = Some(secret_key.to_bytes());
-
-    secret
 }
 
 pub fn sign(public_key: Vec<u8>, secret_key: Vec<u8>, data: &[u8]) -> Option<Vec<u8>> {

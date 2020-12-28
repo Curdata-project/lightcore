@@ -3,7 +3,7 @@ use c2_chacha::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCiph
 use c2_chacha::XChaCha20;
 use generic_array::GenericArray;
 
-pub fn xchacha20_encryption(key: &[u8], nonce: &[u8], data: Vec<u8>) -> Vec<u8> {
+pub fn xchacha20_encryption(key: &[u8], nonce: &[u8], data: &[u8]) -> Vec<u8> {
     let g_key = GenericArray::from_slice(key);
     // nonce是否需要保存
     let g_nonce = GenericArray::from_slice(nonce);
@@ -14,7 +14,7 @@ pub fn xchacha20_encryption(key: &[u8], nonce: &[u8], data: Vec<u8>) -> Vec<u8> 
     data.to_vec()
 }
 
-pub fn xchacha20_decryption(key: &[u8], nonce: &[u8], data: Vec<u8>) -> Vec<u8> {
+pub fn xchacha20_decryption(key: &[u8], nonce: &[u8], data: &[u8]) -> Vec<u8> {
     let g_key = GenericArray::from_slice(key);
     // nonce是否需要保存
     let g_nonce = GenericArray::from_slice(nonce);
