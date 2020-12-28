@@ -1,7 +1,7 @@
 // pub const SELECT_ALL_FROM_KEYSTORE: &str = "select * from keystore";
 
 pub const CREATE_KEYSTORE_TABLE: &str = r#"
-CREATE TABLE "keystore_db" (
+CREATE TABLE "keystore" (
     "account" VARCHAR(255) NOT NULL,
     "encrypt_code" VARCHAR(255) NOT NULL,
     "public_encrypt_type" VARCHAR(255) NOT NULL,

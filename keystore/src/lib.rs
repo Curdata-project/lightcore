@@ -58,21 +58,32 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[mw_rt::async_main]
 async fn main() {
     // 调用js提供的查表是否存在的方法
-    let flag = mw_std::sql::sql_table_exist("keystore_db");
+    let flag = mw_std::sql::sql_table_exist("keystore");
 
     match flag {
-        0 => {}
+        0 => {
+            mw_std::debug::println("keystore not exist");
+            STATEMAP.init();
+        }
         1 => {
+            //TODO debug
+            mw_std::debug::println("keystore exist");
             let v = mw_std::sql::sql_execute(sql::CREATE_KEYSTORE_TABLE, 0).await;
             let str_result = String::from_utf8(v);
             if str_result.as_ref().is_err() {
+                mw_std::debug::println(&alloc::format!("{:?}", str_result.err()));
                 return;
             }
 
             let str = str_result.unwrap();
             match str.as_str() {
-                "ok" => {}
+                "ok" => {
+                    mw_std::debug::println(str.as_str());
+
+                    STATEMAP.init();
+                }
                 "fail" => {
+                    mw_std::debug::println(str.as_str());
                     return;
                 }
                 _ => {}
@@ -80,22 +91,4 @@ async fn main() {
         }
         _ => {}
     }
-
-    let v = mw_std::sql::sql_execute(sql::CREATE_KEYSTORE_TABLE, 0).await;
-    let str_result = String::from_utf8(v);
-
-    // if str_result.as_ref().err().is_some(){
-    //     return;
-    // }
-
-    match str_result {
-        Ok(str) => {
-            mw_std::debug::println(str.as_str());
-
-            STATEMAP.init();
-        }
-        Err(e) => {
-            mw_std::debug::println(&alloc::format!("{}", e));
-        }
-    };
 }

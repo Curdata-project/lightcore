@@ -10,7 +10,7 @@ pub extern "C" fn list_accounts(index: usize, page: usize, item: usize, _order: 
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
         let sql = alloc::format!(
-            "select * from keystore_db limit {} offset {}",
+            "select * from keystore limit {} offset {}",
             item,
             item * (page - 1)
         );
@@ -68,7 +68,7 @@ pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
         let s = unsafe { slice::from_raw_parts(ptr, size) };
         let hex_str = hex::encode(s.to_vec());
 
-        let sql = alloc::format!(r#"select * from keystore_db where account = "{}""#, hex_str);
+        let sql = alloc::format!(r#"select * from keystore where account = "{}""#, hex_str);
 
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
@@ -139,7 +139,7 @@ pub extern "C" fn import_account(index: usize, ptr: *mut u8, size: usize) {
 
         let sql = alloc::format!(
             r#"
-        inser into keystore_db values(
+        inser into keystore values(
             "{}","{}","{}","{}","{}","{}","{}","{}",{},"{}"
         )
         "#,
@@ -179,7 +179,7 @@ pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
         let hex_account = hex::encode(s);
 
         let sql = alloc::format!(
-            r#"select * from keystore_db where account = "{}""#,
+            r#"select * from keystore where account = "{}""#,
             hex_account
         );
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
@@ -271,7 +271,7 @@ pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
 
         let sql = alloc::format!(
             r#"
-        inser into keystore_db values(
+        inser into keystore values(
             "{}","{}","{}","{}","{}","{}","{}","{}",{},"{}"
         )
         "#,
@@ -341,7 +341,7 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
         let hex_account = hex::encode(account);
 
         let sql = alloc::format!(
-            r#"select * from keystore_db where account = "{}""#,
+            r#"select * from keystore where account = "{}""#,
             hex_account
         );
         let v = mw_std::sql::sql_execute(&sql, 1).await;
@@ -450,7 +450,7 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
                 let encrypt_code = account_msg.encrypt_code.as_ref();
 
                 let sql = alloc::format!(
-                    r#"select * from keystore_db where account = "{}""#,
+                    r#"select * from keystore where account = "{}""#,
                     hex_account
                 );
                 let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
@@ -584,7 +584,7 @@ pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
         let encrypt_code = account_msg.encrypt_code.as_ref();
 
         let sql = alloc::format!(
-            r#"select * from keystore_db where account = "{}""#,
+            r#"select * from keystore where account = "{}""#,
             hex_account
         );
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
@@ -665,7 +665,7 @@ pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
         let encrypt_code = account_msg.encrypt_code.as_ref();
 
         let sql = alloc::format!(
-            r#"select * from keystore_db where account = "{}""#,
+            r#"select * from keystore where account = "{}""#,
             hex_account
         );
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
