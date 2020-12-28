@@ -21,7 +21,10 @@ pub extern "C" fn list_accounts(index: usize, page: usize, item: usize, _order: 
         let keystore_list_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::KeystoreList>(v.as_slice());
 
+        // 如果错误就在debug下打印解析错误
         if keystore_list_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", keystore_list_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -70,17 +73,21 @@ pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
         if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        let keystore_result =
+        let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(v.as_slice());
 
-        if keystore_result.as_ref().err().is_some() {
+        if deserialize_result.as_ref().err().is_some() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        let keystore = keystore_result.unwrap();
+        let keystore = deserialize_result.unwrap();
         let mut keypair_display = proto::keystore::KeypairDisplay::default();
         keypair_display.account = keystore.account;
         keypair_display.cert = keystore.cert;
@@ -92,6 +99,8 @@ pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
             quick_protobuf::serialize_into_slice(&keypair_display, out.as_mut_slice());
 
         if serialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", serialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -110,6 +119,8 @@ pub extern "C" fn import_account(index: usize, ptr: *mut u8, size: usize) {
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keypair>(s);
 
         if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -176,6 +187,8 @@ pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
         let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
         if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -193,6 +206,8 @@ pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
         let mut out: Vec<u8> = Vec::new();
         let serialize_result = quick_protobuf::serialize_into_slice(&keypair, out.as_mut_slice());
         if serialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", serialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         };
         mw_std::notify::notify_ptr_size(index, &out);
@@ -213,6 +228,8 @@ pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
             quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
 
         if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
             return;
         }
 
@@ -301,6 +318,8 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
             quick_protobuf::deserialize_from_slice::<proto::keystore::SignMsg>(s);
 
         if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -309,6 +328,8 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
         let account_msg_op = sign_msg.account_msg.as_ref();
 
         if account_msg_op.as_ref().is_none() {
+            mw_std::debug::println(crate::err::ACCOUNT_MSG_NONE);
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -330,22 +351,28 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
             return;
         }
 
-        let keystore_result =
+        let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
 
-        if keystore_result.as_ref().err().is_some() {
+        if deserialize_result.as_ref().err().is_some() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
-        let keystore = keystore_result.unwrap();
+        let keystore = deserialize_result.unwrap();
 
         match crate::STATEMAP.get(account.to_vec()) {
             Some(v) => {
                 if v == 1 {
+                    mw_std::debug::println(crate::err::LOCKED);
+                    mw_std::notify::notify_ptr_size(index, &[]);
                     return;
                 }
             }
             None => {
+                mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+                mw_std::notify::notify_ptr_size(index, &[]);
                 return;
             }
         };
@@ -364,6 +391,8 @@ pub extern "C" fn sign_message(index: usize, ptr: *mut u8, size: usize) {
         let hex2 = hex::encode(encrypt_code);
 
         if hex1 != hex2 {
+            mw_std::debug::println(crate::err::ENCRYPT_CODE_MISMATCH);
+            mw_std::notify::notify_ptr_size(index, &[]);
             return;
         }
 
@@ -397,6 +426,8 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
         quick_protobuf::deserialize_from_slice::<proto::keystore::VerifySign>(s);
 
     if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
         return;
     }
 
@@ -406,12 +437,16 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
             let runtime = mw_rt::runtime::Runtime::new();
             let sign = avs.sign.clone();
             if avs.sign_msg.as_ref().is_none() {
+                mw_std::debug::println(crate::err::SIGN_MSG_NONE);
+                mw_std::notify::notify_number(index, 1);
                 return;
             }
 
             let sign_msg = avs.sign_msg.unwrap();
 
             if sign_msg.account_msg.as_ref().is_none() {
+                mw_std::debug::println(crate::err::ACCOUNT_MSG_NONE);
+                mw_std::notify::notify_number(index, 1);
                 return;
             }
 
@@ -431,18 +466,22 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
                 let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
                 if v.len() == 0 {
+                    mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+                    mw_std::notify::notify_number(index, 1);
                     return;
                 }
 
-                let keystore_result = quick_protobuf::deserialize_from_slice::<
+                let deserialize_result = quick_protobuf::deserialize_from_slice::<
                     proto::keystore::Keystore,
                 >(v.as_slice());
 
-                if keystore_result.as_ref().err().is_some() {
+                if deserialize_result.as_ref().err().is_some() {
+                    mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+                    mw_std::notify::notify_number(index, 1);
                     return;
                 }
 
-                let keystore = keystore_result.unwrap();
+                let keystore = deserialize_result.unwrap();
 
                 let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
                     encrypt_code,
@@ -458,6 +497,8 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
                 let hex2 = hex::encode(encrypt_code);
 
                 if hex1 != hex2 {
+                    mw_std::debug::println(crate::err::ENCRYPT_CODE_MISMATCH);
+                    mw_std::notify::notify_number(index, 1);
                     return;
                 }
 
@@ -508,6 +549,8 @@ pub extern "C" fn verify_sign(index: usize, ptr: *mut u8, size: usize) {
             };
         }
         crate::proto::keystore::mod_VerifySign::OneOfVerfySign::None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
             return;
         }
     }
@@ -521,6 +564,8 @@ pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
         quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
 
     if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
         return;
     }
 
@@ -530,10 +575,14 @@ pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
     match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
         Some(v) => {
             if v == 1 {
+                mw_std::debug::println(crate::err::LOCKED);
+                mw_std::notify::notify_number(index, 1);
                 return;
             }
         }
         None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
             return;
         }
     };
@@ -551,17 +600,21 @@ pub extern "C" fn lock_account(index: usize, ptr: *mut u8, size: usize) {
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
         if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_number(index, 1);
             return;
         }
 
-        let keystore_result =
+        let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
 
-        if keystore_result.as_ref().err().is_some() {
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
             return;
         }
 
-        let keystore = keystore_result.unwrap();
+        let keystore = deserialize_result.unwrap();
 
         let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,
@@ -593,6 +646,8 @@ pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
         quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
 
     if deserialize_result.as_ref().is_err() {
+        mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+        mw_std::notify::notify_number(index, 1);
         return;
     }
     let account_msg = deserialize_result.unwrap();
@@ -600,10 +655,14 @@ pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
     match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
         Some(v) => {
             if v == 0 {
+                mw_std::debug::println(crate::err::UNLOCKED);
+                mw_std::notify::notify_number(index, 1);
                 return;
             }
         }
         None => {
+            mw_std::debug::println(crate::err::LOCK_NOT_EXIST);
+            mw_std::notify::notify_number(index, 1);
             return;
         }
     };
@@ -622,17 +681,21 @@ pub extern "C" fn unlock_account(index: usize, ptr: *mut u8, size: usize) {
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
         if v.len() == 0 {
+            mw_std::debug::println(crate::err::QUERY_SQL_NONE);
+            mw_std::notify::notify_number(index, 1);
             return;
         }
 
-        let keystore_result =
+        let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(v.as_slice());
 
-        if keystore_result.as_ref().err().is_some() {
+        if deserialize_result.as_ref().is_err() {
+            mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
+            mw_std::notify::notify_number(index, 1);
             return;
         }
 
-        let keystore = keystore_result.unwrap();
+        let keystore = deserialize_result.unwrap();
 
         let encrypt_code_de = cypher::xchacha20::xchacha20_decryption(
             encrypt_code,

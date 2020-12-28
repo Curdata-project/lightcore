@@ -9,6 +9,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 mod cypher;
+mod err;
 mod interface;
 mod proto;
 mod sql;
