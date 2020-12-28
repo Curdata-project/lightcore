@@ -58,7 +58,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[mw_rt::async_main]
 async fn main() {
     // 调用js提供的查表是否存在的方法
-    let flag = mw_std::sql::sql_table_exist("keystore");
+    let flag = mw_std::sql::sql_table_exist("keystore_db");
 
     match flag {
         0 => {}
