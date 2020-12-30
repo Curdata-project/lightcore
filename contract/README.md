@@ -28,4 +28,4 @@ TODO:
 
 ### 内部接口
 
-- add_contract
+- run_contract
