@@ -12,7 +12,5 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 async fn main() {
     let runtime = mw_rt::runtime::Runtime::new();
 
-    runtime.spawn(async move {
-        
-    });
+    runtime.spawn(async move {});
 }
