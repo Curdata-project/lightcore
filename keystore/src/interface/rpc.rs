@@ -66,9 +66,9 @@ pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
 
     runtime.spawn(async move {
         let s = unsafe { slice::from_raw_parts(ptr, size) };
-        let hex_str = hex::encode(s.to_vec());
+        // let hex_str = hex::encode(s.to_vec());
 
-        let sql = alloc::format!(r#"select * from keystore where account = "{}""#, hex_str);
+        let sql = alloc::format!(r#"select * from keystore where account = "{:?}""#, s);
 
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 

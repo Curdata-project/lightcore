@@ -30,10 +30,10 @@ fn main() {
         Ok(())
     }
 
-    let quick_dest = Path::new("./src/proto").join("keystore.rs");
+    let quick_dest = Path::new("./src/proto").join("contract.rs");
 
     let config = Config {
-        in_file: PathBuf::from("./proto/keystore.proto"),
+        in_file: PathBuf::from("./proto/contract.proto"),
         out_file: quick_dest,
         single_module: true,
         import_search_path: vec![PathBuf::from("./proto")],

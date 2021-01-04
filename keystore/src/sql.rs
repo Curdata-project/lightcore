@@ -2,14 +2,14 @@
 
 pub const CREATE_KEYSTORE_TABLE: &str = r#"
 CREATE TABLE "keystore" (
-    "account" VARCHAR(255) NOT NULL,
-    "encrypt_code" VARCHAR(255) NOT NULL,
-    "public_encrypt_type" VARCHAR(255) NOT NULL,
-    "seed" VARCHAR(255) NOT NULL,
-    "secret_key" VARCHAR(255) NOT NULL,
-    "public_key" VARCHAR(255) NOT NULL,
-    "cert" VARCHAR(255),
-    "secret_encrypt_type" VARCHAR(255) NOT NULL,
+    "account" blob NOT NULL,
+    "encrypt_code" blob NOT NULL,
+    "public_encrypt_type" blob NOT NULL,
+    "seed" blob NOT NULL,
+    "secret_key" blob NOT NULL,
+    "public_key" blob NOT NULL,
+    "cert" blob,
+    "secret_encrypt_type" blob NOT NULL,
     "create_date" INTEGER NOT NULL,
     PRIMARY KEY ("account")
   )

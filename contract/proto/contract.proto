@@ -1,5 +1,9 @@
 syntax = "proto3";
 
 message ContractRef{
-    bytes stateid = 1;
+    bytes contract_id = 1;
+}
+
+message ContractList{
+    repeated bytes contract_list =1;
 }
