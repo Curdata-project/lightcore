@@ -3,6 +3,11 @@
 extern crate alloc;
 // extern crate mw_rt;
 
+mod err;
+mod interface;
+mod proto;
+mod utils;
+
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 

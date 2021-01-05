@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "common.proto";
+
+
+message State{
+    uint64 size = 1;
+    bytes state = 2;
+    bytes owner = 3;
+    bytes lock = 4;
+    bytes valid = 5;
+
+    Msg msg = 6;
+}
+
+message SignedState{
+    bytes id = 1;
+    State state = 2;
+    bytes witness = 3;
+    bytes signature = 4;
+
+    Msg msg = 5;
+}
+
