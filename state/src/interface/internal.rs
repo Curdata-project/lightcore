@@ -1,8 +1,8 @@
 use alloc::{borrow::Cow, slice};
 
-use common::{err::Err,proto};
-use crate::proto;
+use common::{err::Err,proto_utils};
 use alloc::string::String;
+use crate::proto;
 
 #[no_mangle]
 pub extern "C" fn add_state(ptr: *const u8, size: usize) -> usize {
@@ -38,7 +38,7 @@ pub extern "C" fn add_state(ptr: *const u8, size: usize) -> usize {
     sql.params.push(state.lock);
     sql.params.push(state.valid);
 
-    let result = proto::qb_serialize(&sql);
+    let result = proto_utils::qb_serialize(&sql);
 
     if result.is_err() {
         let e = Err::ProtoErrors(result.unwrap_err());
