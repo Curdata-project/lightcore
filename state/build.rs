@@ -34,10 +34,10 @@ fn main() {
     let quick_dest = Path::new("./src/proto");
 
     let common_config = Config {
-        in_file: PathBuf::from("./proto/common.proto"),
+        in_file: PathBuf::from("../common/proto/common.proto"),
         out_file: quick_dest.join("common.rs"),
         single_module: true,
-        import_search_path: vec![PathBuf::from("../proto")],
+        import_search_path: vec![PathBuf::from("../../common/proto")],
         no_output: false,
         error_cycle: false,
         headers: false,
@@ -52,10 +52,10 @@ fn main() {
     };
 
     let state_config = Config {
-        in_file: PathBuf::from("./proto/state.proto"),
+        in_file: PathBuf::from("./proto/state.proto"),// src下
         out_file: quick_dest.join("state.rs"),
         single_module: true,
-        import_search_path: vec![PathBuf::from("../proto")],
+        import_search_path: vec![PathBuf::from("../../common/proto")],// 目标目录下
         no_output: false,
         error_cycle: false,
         headers: false,

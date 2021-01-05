@@ -3,7 +3,6 @@
 extern crate alloc;
 // extern crate mw_rt;
 
-mod err;
 mod interface;
 mod proto;
 mod utils;
