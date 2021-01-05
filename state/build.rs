@@ -52,7 +52,7 @@ fn main() {
     };
 
     let state_config = Config {
-        in_file: PathBuf::from("./proto/state.proto"),// src下
+        in_file: PathBuf::from("./proto/state.proto"),// state下
         out_file: quick_dest.join("state.rs"),
         single_module: true,
         import_search_path: vec![PathBuf::from("../../common/proto")],// 目标目录下

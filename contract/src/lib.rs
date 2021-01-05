@@ -1,14 +1,15 @@
 #![no_std]
 #![feature(default_alloc_error_handler)]
 extern crate alloc;
-use core::cell::RefCell;
-use alloc::boxed::Box;
 use alloc::borrow::Cow;
-use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
+use core::cell::RefCell;
+use common::{err::Err,proto_utils};
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::vec;
 use mw_rt::actor::Actor;
 
 mod proto;
@@ -50,10 +51,10 @@ impl LoadHandleMap {
         }
     }
 
-    pub fn list(&self) -> Vec<i32>{
+    pub fn list(&self) -> Vec<i32> {
         let map = self.map.borrow_mut();
-        let mut v:Vec<i32> = Vec::new();
-        for entry in map.iter(){
+        let mut v: Vec<i32> = Vec::new();
+        for entry in map.iter() {
             v.push(*entry.0);
         }
 
@@ -62,65 +63,106 @@ impl LoadHandleMap {
 }
 
 #[mw_rt::actor::actor]
-pub struct Contract{}
+pub struct Contract {}
 
 #[async_trait::async_trait]
-impl Actor for Contract{
+impl Actor for Contract {
     fn new() -> Self {
-        Contract{}
+        Contract {}
     }
 
     async fn init(&mut self) {}
 }
 
-
 #[mw_rt::actor::expose]
-impl Contract{
-
+impl Contract {
     #[mw_rt::actor::method]
-    pub async fn load_contract(&mut self,bytes:&[u8]){
+    pub async fn load_contract(&mut self, bytes: &[u8]) {
         let instance = mw_std::loader::loader(bytes).await;
-        if instance.handle.is_none(){
+        if instance.handle.is_none() {
             return;
         }
-        LOADHANDLEMAP.insert(instance.handle.unwrap(),instance);
+        LOADHANDLEMAP.insert(instance.handle.unwrap(), instance);
     }
 
-    pub async fn get_contract(&mut self, id:i32)->&[u8]{
-        let instance_op:Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
-        if instance_op.is_none(){
-            return &[0u8;0];
+    pub async fn get_contract(&mut self, id: i32) -> Vec<u8> {
+        let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
+        let mut msg = proto::common::Msg::default();
+        let mut contract_id = proto::contract::ContractRef::default();
+        if instance_op.is_none() {
+            let e = Err::Null("load handler is null".to_string());
+            let pair = e.get();
+            msg.code = pair.0 as i32;
+            msg.detail = Cow::Owned(pair.1);
+
+            contract_id.msg = Some(msg);
+            let result = proto_utils::qb_serialize(&contract_id);
+
+            return match result {
+                Ok(value) => value,
+                Err(err) => {
+                    let e = Err::ProtoErrors(err);
+                    let _pair = e.get();
+                    return vec![]
+                }
+            }
+
         }
 
         let instance = instance_op.unwrap();
-        let handle = instance.handle.unwrap().to_be_bytes();//小端
+        let handle = instance.handle.unwrap().to_be_bytes(); //小端
 
-        let mut contract_id = proto::contract::ContractRef::default();
+        
         contract_id.contract_id = Cow::Borrowed(&handle);
-        let mut out:Vec<u8> = Vec::new();
 
-        let serialize_result = quick_protobuf::serialize_into_slice(&contract_id, out.as_mut_slice());
-        if serialize_result.as_ref().is_err(){
-            return &[0u8;0];
+        let result = proto_utils::qb_serialize(&contract_id);
+        if result.is_err() {
+            let e = Err::ProtoErrors(result.unwrap_err());
+            let pair = e.get();
+            msg.code = pair.0 as i32;
+            msg.detail = Cow::Owned(pair.1);
+
+            contract_id.msg = Some(msg);
+            let result = proto_utils::qb_serialize(&contract_id);
+
+            return match result {
+                Ok(value) => value,
+                Err(err) => {
+                    let e = Err::ProtoErrors(err);
+                    let _pair = e.get();
+                    return vec![]
+                }
+            }            
         }
-        let s =  out.as_slice();
-        &[0u8;0]
+
+        result.unwrap()
     }
 
-    pub async fn list_contract(&mut self)->&[u8]{
-        let v:Vec<i32> = LOADHANDLEMAP.list();
+    pub async fn list_contract(&mut self) -> Vec<u8> {
+        let v: Vec<i32> = LOADHANDLEMAP.list();
 
         let mut contract_list = proto::contract::ContractList::default();
-        let list :Vec<Cow<[u8]>> =v.iter().map(|i|{
-            let bytes = i.to_be_bytes().to_vec();
-            Cow::Owned(bytes)
-        }).collect();
+        let msg = proto::common::Msg::default();
+        let list: Vec<Cow<[u8]>> = v
+            .iter()
+            .map(|i| {
+                let bytes = i.to_be_bytes().to_vec();
+                Cow::Owned(bytes)
+            })
+            .collect();
 
         contract_list.contract_list = list;
-        &[0u8;0]
+        contract_list.msg = Some(msg);
+        let result = proto_utils::qb_serialize(&contract_list);
+        return match result {
+            Ok(value) => value,
+            Err(err) => {
+                let e = Err::ProtoErrors(err);
+                let _pair = e.get();
+                return vec![] 
+            }
+        }
     }
-
-
 }
 
 // #[mw_rt::async_

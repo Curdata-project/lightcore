@@ -16,6 +16,7 @@ quick-protobuf = {version = "0.8.0", default-features = false}
 wee_alloc = "0.4"
 lazy_static = {version = "1.4.0", features = ["spin_no_std"]}
 async-trait = "0.1.42"
+common = {path = "../common"}
 
 [build-dependencies]
 pb-rs = "0.9.1"

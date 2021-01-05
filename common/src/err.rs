@@ -6,10 +6,11 @@ use alloc::string::{String,ToString};
 pub enum Err {
     ProtoErrors(qp_errors),
     FromUtf8Error(FromUtf8Error),
+    Null(String),
 }
 
 impl Err {
-    pub fn get(&self) -> (usize, String) {
+    pub fn get(self) -> (usize, String) {
         return match self {
             Err::ProtoErrors(e) => match e {
                 qp_errors::Io => (20001, "quick protobuf IO ERROR".to_string()),
@@ -36,7 +37,8 @@ impl Err {
                     (20006, "quick protobuf OutputBufferTooSmall ERROR".to_string())
                 }
             },
-            Err::FromUtf8Error(e) => (20007, alloc::format!("from utf8 ERROR:{}", e)),
+            Err::FromUtf8Error(err) => (20007, alloc::format!("from utf8 ERROR:{}", err)),
+            Err::Null(err) => (20008, alloc::format!("Null ERROR:{:?}", err)),
         };
     }
 }

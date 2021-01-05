@@ -30,13 +30,13 @@ fn main() {
         Ok(())
     }
 
-    let quick_dest = Path::new("./src/proto").join("contract.rs");
+    let quick_dest = Path::new("./src/proto");
 
-    let config = Config {
-        in_file: PathBuf::from("./proto/contract.proto"),
-        out_file: quick_dest,
+    let common_config = Config {
+        in_file: PathBuf::from("../common/proto/common.proto"),
+        out_file: quick_dest.join("common.rs"),
         single_module: true,
-        import_search_path: vec![PathBuf::from("./proto")],
+        import_search_path: vec![PathBuf::from("../../common/proto")],
         no_output: false,
         error_cycle: false,
         headers: false,
@@ -49,5 +49,28 @@ fn main() {
         hashbrown: false,
         nostd: true,
     };
-    FileDescriptor::write_proto(&config).unwrap();
+
+    let contract_config = Config {
+        in_file: PathBuf::from("./proto/contract.proto"),// contract下
+        out_file: quick_dest.join("contract.rs"),
+        single_module: true,
+        import_search_path: vec![PathBuf::from("../../common/proto")],// 目标目录下
+        no_output: false,
+        error_cycle: false,
+        headers: false,
+        dont_use_cow: false,
+        custom_struct_derive: vec![],
+        custom_repr: None,
+        custom_rpc_generator: Box::new(|rpc, writer| generate_rpc_test(rpc, writer)),
+        custom_includes: Vec::new(),
+        owned: false,
+        hashbrown: false,
+        nostd: true,
+    };
+
+    let mut v: Vec<Config> = Vec::new();
+    v.push(contract_config);
+    v.push(common_config);
+
+    FileDescriptor::run(&v).unwrap();
 }
