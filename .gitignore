@@ -4,3 +4,6 @@ Cargo.lock
 /node_modules
 /json_test
 /test.db
+/contract/src/proto/*.rs
+/keystore/src/proto/*.rs
+/state/src/proto/*.rs
