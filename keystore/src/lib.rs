@@ -5,8 +5,10 @@ extern crate alloc;
 use core::cell::RefCell;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+// use alloc::string::String;
 use alloc::vec::Vec;
+// use mw_rt::actor::Actor;
+// use alloc::boxed::Box;
 
 mod cypher;
 mod err;
@@ -52,47 +54,61 @@ impl StateMap {
 
 unsafe impl Sync for StateMap {}
 
+
+
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[mw_rt::async_main]
-async fn main() {
-    // 调用js提供的查表是否存在的方法
-    let flag = mw_std::sql::sql_table_exist("keystore").await;
-    //TODO debug
-    mw_std::debug::println(&alloc::format!("{}", flag));
-    match flag {
-        0 => {
-            //TODO debug
-            mw_std::debug::println("keystore exist");
-            STATEMAP.init();
-        }
-        1 => {
-            //TODO debug
-            mw_std::debug::println("keystore not exist");
-            let v = mw_std::sql::sql_execute(sql::CREATE_KEYSTORE_TABLE, 0).await;
-            let str_result = String::from_utf8(v);
-            if str_result.as_ref().is_err() {
-                mw_std::debug::println(&alloc::format!("{:?}", str_result.err()));
-                return;
-            }
+// #[mw_rt::actor::actor]
+// pub struct Keystore {}
 
-            let str = str_result.unwrap();
-            match str.as_str() {
-                "ok" => {
-                    mw_std::debug::println(str.as_str());
+// #[async_trait::async_trait]
+// impl Actor for Keystore {
+//     fn new() -> Self {
+//         Keystore {}
+//     }
 
-                    STATEMAP.init();
-                }
-                "fail" => {
-                    mw_std::debug::println(str.as_str());
-                    return;
-                }
-                _ => {}
-            }
-        }
-        _ => {}
-    }
-    //TODO debug
-    mw_std::debug::println("end");
-}
+//     async fn init(&mut self) {}
+// }
+
+// #[mw_rt::async_main]
+// async fn main() {
+//     // 调用js提供的查表是否存在的方法
+//     let flag = mw_std::sql::sql_table_exist("keystore").await;
+//     //TODO debug
+//     mw_std::debug::println(&alloc::format!("{}", flag));
+//     match flag {
+//         0 => {
+//             //TODO debug
+//             mw_std::debug::println("keystore exist");
+//             STATEMAP.init();
+//         }
+//         1 => {
+//             //TODO debug
+//             mw_std::debug::println("keystore not exist");
+//             let v = mw_std::sql::sql_execute(sql::CREATE_KEYSTORE_TABLE, 0).await;
+//             let str_result = String::from_utf8(v);
+//             if str_result.as_ref().is_err() {
+//                 mw_std::debug::println(&alloc::format!("{:?}", str_result.err()));
+//                 return;
+//             }
+
+//             let str = str_result.unwrap();
+//             match str.as_str() {
+//                 "ok" => {
+//                     mw_std::debug::println(str.as_str());
+
+//                     STATEMAP.init();
+//                 }
+//                 "fail" => {
+//                     mw_std::debug::println(str.as_str());
+//                     return;
+//                 }
+//                 _ => {}
+//             }
+//         }
+//         _ => {}
+//     }
+//     //TODO debug
+//     mw_std::debug::println("end");
+// }

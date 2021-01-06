@@ -3,13 +3,13 @@
 extern crate alloc;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
+use common::{err::Err, proto_utils};
 use core::cell::RefCell;
-use common::{err::Err,proto_utils};
 
 use alloc::collections::BTreeMap;
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 use mw_rt::actor::Actor;
 
 mod proto;
@@ -17,8 +17,7 @@ mod proto;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// #[macro_use]
-// extern crate lazy_static;
+#[macro_use]
 lazy_static! {
     pub static ref LOADHANDLEMAP: LoadHandleMap = LoadHandleMap::new();
 }
@@ -77,14 +76,17 @@ impl Actor for Contract {
 #[mw_rt::actor::expose]
 impl Contract {
     #[mw_rt::actor::method]
-    pub async fn load_contract(&mut self, bytes: &[u8]) {
+    pub async fn load_contract(&mut self, bytes: &[u8]) -> i32 {
         let instance = mw_std::loader::loader(bytes).await;
         if instance.handle.is_none() {
-            return;
+            return -1;
         }
+        let result = instance.handle.unwrap();
         LOADHANDLEMAP.insert(instance.handle.unwrap(), instance);
+        result
     }
 
+    #[mw_rt::actor::method]
     pub async fn get_contract(&mut self, id: i32) -> Vec<u8> {
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
         let mut msg = proto::common::Msg::default();
@@ -103,16 +105,14 @@ impl Contract {
                 Err(err) => {
                     let e = Err::ProtoErrors(err);
                     let _pair = e.get();
-                    return vec![]
+                    return vec![];
                 }
-            }
-
+            };
         }
 
         let instance = instance_op.unwrap();
         let handle = instance.handle.unwrap().to_be_bytes(); //小端
 
-        
         contract_id.contract_id = Cow::Borrowed(&handle);
 
         let result = proto_utils::qb_serialize(&contract_id);
@@ -130,14 +130,15 @@ impl Contract {
                 Err(err) => {
                     let e = Err::ProtoErrors(err);
                     let _pair = e.get();
-                    return vec![]
+                    return vec![];
                 }
-            }            
+            };
         }
 
         result.unwrap()
     }
 
+    #[mw_rt::actor::method]
     pub async fn list_contract(&mut self) -> Vec<u8> {
         let v: Vec<i32> = LOADHANDLEMAP.list();
 
@@ -159,10 +160,22 @@ impl Contract {
             Err(err) => {
                 let e = Err::ProtoErrors(err);
                 let _pair = e.get();
-                return vec![] 
+                return vec![];
             }
+        };
+    }
+    #[mw_rt::actor::method]
+    pub async fn run_contract(&mut self, id:i32, bytes:&[u8]) -> i32 {
+        let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
+        if instance_op.is_none() {
+            let e = Err::Null("load handler is null".to_string());
+            let pair = e.get();
+            return pair.0 as i32;
         }
+
+        let instance = instance_op.unwrap();
+
+        let result = instance.run(bytes);
+        result
     }
 }
-
-// #[mw_rt::async_

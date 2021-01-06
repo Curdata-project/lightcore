@@ -1,6 +1,6 @@
 // pub const SELECT_ALL_FROM_KEYSTORE: &str = "select * from keystore";
 
-pub const CREATE_KEYSTORE_TABLE: &str = r#"
+pub const _CREATE_KEYSTORE_TABLE: &str = r#"
 CREATE TABLE "keystore" (
     "account" blob NOT NULL,
     "encrypt_code" blob NOT NULL,

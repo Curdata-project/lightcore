@@ -1,8 +1,8 @@
 //! err definition
 // bussiness err 20000
 use alloc::string::FromUtf8Error;
+use alloc::string::{String, ToString};
 use quick_protobuf::errors::Error as qp_errors;
-use alloc::string::{String,ToString};
 pub enum Err {
     ProtoErrors(qp_errors),
     FromUtf8Error(FromUtf8Error),
@@ -14,10 +14,9 @@ impl Err {
         return match self {
             Err::ProtoErrors(e) => match e {
                 qp_errors::Io => (20001, "quick protobuf IO ERROR".to_string()),
-                qp_errors::Utf8(err) => (
-                    20002,
-                    alloc::format!("quick protobuf Utf8 ERROR:{:?}", err),
-                ),
+                qp_errors::Utf8(err) => {
+                    (20002, alloc::format!("quick protobuf Utf8 ERROR:{:?}", err))
+                }
                 qp_errors::Deprecated(err) => (
                     20003,
                     alloc::format!("quick protobuf Deprecated ERROR:{:?}", err),
@@ -30,12 +29,14 @@ impl Err {
                 qp_errors::Map(err) => {
                     (20005, alloc::format!("quick protobuf Map ERROR:{:?}", err))
                 }
-                qp_errors::UnexpectedEndOfBuffer => {
-                    (20006, "quick protobuf UnexpectedEndOfBuffer ERROR".to_string())
-                }
-                qp_errors::OutputBufferTooSmall => {
-                    (20006, "quick protobuf OutputBufferTooSmall ERROR".to_string())
-                }
+                qp_errors::UnexpectedEndOfBuffer => (
+                    20006,
+                    "quick protobuf UnexpectedEndOfBuffer ERROR".to_string(),
+                ),
+                qp_errors::OutputBufferTooSmall => (
+                    20006,
+                    "quick protobuf OutputBufferTooSmall ERROR".to_string(),
+                ),
             },
             Err::FromUtf8Error(err) => (20007, alloc::format!("from utf8 ERROR:{}", err)),
             Err::Null(err) => (20008, alloc::format!("Null ERROR:{:?}", err)),
