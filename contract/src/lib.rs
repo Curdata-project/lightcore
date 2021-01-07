@@ -165,7 +165,7 @@ impl Contract {
         };
     }
     #[mw_rt::actor::method]
-    pub async fn run_contract(&mut self, id:i32, bytes:&[u8]) -> i32 {
+    pub async fn run_contract(&mut self, id: i32, bytes: &[u8]) -> i32 {
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
         if instance_op.is_none() {
             let e = Err::Null("load handler is null".to_string());
