@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, rc::Rc, string::String, vec, vec::Vec};
+use alloc::{rc::Rc};
 use core::ffi::c_void;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
