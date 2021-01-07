@@ -10,7 +10,7 @@ pub extern "C" fn list_accounts(index: usize, page: usize, item: usize, _order: 
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
         let sql = alloc::format!(
-            "select * from ketstore limit {} offset {}",
+            "select * from keystore limit {} offset {}",
             item,
             item * (page - 1)
         );
@@ -66,9 +66,9 @@ pub extern "C" fn get_account(index: usize, ptr: *mut u8, size: usize) {
 
     runtime.spawn(async move {
         let s = unsafe { slice::from_raw_parts(ptr, size) };
-        let hex_str = hex::encode(s.to_vec());
+        // let hex_str = hex::encode(s.to_vec());
 
-        let sql = alloc::format!(r#"select * from keystore where account = "{}""#, hex_str);
+        let sql = alloc::format!(r#"select * from keystore where account = "{:?}""#, s);
 
         let v = mw_std::sql::sql_execute(sql.as_str(), 1).await;
 
@@ -219,15 +219,27 @@ pub extern "C" fn export_accounts(index: usize, ptr: *mut u8, size: usize) {
 pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
     let runtime = mw_rt::runtime::Runtime::new();
     runtime.spawn(async move {
+        //TODO debug
+        mw_std::debug::println("new_account start");
+        mw_std::debug::println(&alloc::format!("ptr:{:?},size:{:?}", ptr, size));
+
         let secret = crate::cypher::ed_25519::Secret::gen().await;
-        // let encrypt_code = unsafe { slice::from_raw_parts(ptr, size) };
+        //debug
+        mw_std::debug::println(&alloc::format!("secret:{:?}", secret));
 
         let s = unsafe { slice::from_raw_parts(ptr, size) };
 
         let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(s);
 
+        //TODO debug
+        mw_std::debug::println(&alloc::format!(
+            "deserialize_result:{:?}",
+            deserialize_result
+        ));
+
         if deserialize_result.as_ref().is_err() {
+            //TODO debug
             mw_std::debug::println(&alloc::format!("{:?}", deserialize_result.err()));
             mw_std::notify::notify_number(index, 1);
             return;
@@ -241,6 +253,11 @@ pub extern "C" fn new_account(index: usize, ptr: *mut u8, size: usize) {
         let nonce = mw_std::rand::gen_rand32().await;
 
         let nonce = nonce.as_slice();
+
+        // 判断一旦secret有空就返回
+        if secret.secret_key.is_none() || secret.public_key.is_none() || secret.seed.is_none() {
+            return;
+        }
 
         let secret_key = secret.secret_key.unwrap();
 

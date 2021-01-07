@@ -21,6 +21,7 @@ message TranscationOutput {
   bytes state = 2; // State data.
   bytes owner = 3; // Owner's cert
   bytes lock = 4; // Smart contract support.
+  bytes valid = 5; // Valid script. Use this script to valid this state.
 }
 
 // Signed Transaction

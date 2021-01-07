@@ -24,4 +24,9 @@ TODO:
 
 - load_contract
 - get_contract
+  - true/false
 - list_contracts
+
+### 内部接口
+
+- run_contract

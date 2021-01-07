@@ -48,7 +48,16 @@ const modules = {
       {
         type: 'callback',
         name: 'new_account',
-        args: [],
+        args: [
+          {
+            name: 'new_account',
+            type: 'proto',
+            attr: {
+              proto: 'keystore/proto/keystore.proto',
+              message: 'AccountMsg'
+            }
+          }
+        ],
         return: {
             type: 'proto',
             proto: 'keystore/proto/keystore.proto',

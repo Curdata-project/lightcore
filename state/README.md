@@ -29,7 +29,15 @@ message SignedState {
 
 ### 数据库结构
 
-TODO
+```
+id:blob
+state:blob
+owner:blob
+lock:blob
+valid:blob
+size:integer
+is_valid:interger
+```
 
 ## 访问接口
 
