@@ -54,8 +54,6 @@ impl StateMap {
 
 unsafe impl Sync for StateMap {}
 
-
-
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 

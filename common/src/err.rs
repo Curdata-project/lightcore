@@ -7,6 +7,7 @@ pub enum Err {
     ProtoErrors(qp_errors),
     FromUtf8Error(FromUtf8Error),
     Null(String),
+    VaildFail(i32),
 }
 
 impl Err {
@@ -40,6 +41,7 @@ impl Err {
             },
             Err::FromUtf8Error(err) => (20007, alloc::format!("from utf8 ERROR:{}", err)),
             Err::Null(err) => (20008, alloc::format!("Null ERROR:{:?}", err)),
+            Err::VaildFail(err) => (20009, alloc::format!("VaildFail ERROR:{:?}", err)),
         };
     }
 }
