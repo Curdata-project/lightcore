@@ -8,6 +8,9 @@ pub enum Err {
     FromUtf8Error(FromUtf8Error),
     Null(String),
     VaildFail(i32),
+    UnlockFail(i32),
+    SqlExecture(String),
+    CallState(String),
 }
 
 impl Err {
@@ -42,6 +45,9 @@ impl Err {
             Err::FromUtf8Error(err) => (20007, alloc::format!("from utf8 ERROR:{}", err)),
             Err::Null(err) => (20008, alloc::format!("Null ERROR:{:?}", err)),
             Err::VaildFail(err) => (20009, alloc::format!("VaildFail ERROR:{:?}", err)),
+            Err::UnlockFail(err) => (20010, alloc::format!("UnlockFail ERROR:{:?}", err)),
+            Err::SqlExecture(err) => (20011, alloc::format!("SqlExecture ERROR:{:?}", err)),
+            Err::CallState(err) => (20012, alloc::format!("CallState ERROR:{:?}", err)),
         };
     }
 }

@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256, Sha512};
 
-pub fn gen_state_id(state_bytes: &[u8]) -> Vec<u8> {
+pub fn gen_hash_32_id(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha512::new();
-    hasher.update(state_bytes);
+    hasher.update(data);
 
     let hash64 = hasher.finalize();
     let mut hasher = Sha256::new();

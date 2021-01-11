@@ -1,6 +1,7 @@
 extern crate pb_rs;
 
 use pb_rs::types::{Config, FileDescriptor, RpcService};
+use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
@@ -32,6 +33,9 @@ fn main() {
     }
 
     let quick_dest = Path::new("./src/proto");
+    if !quick_dest.exists() {
+        fs::create_dir(quick_dest).unwrap();
+    }
 
     let common_config = Config {
         in_file: PathBuf::from("../common/proto/common.proto"),

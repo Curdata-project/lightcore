@@ -1,4 +1,4 @@
-pub const CREATE_KEYSTORE_TABLE: &str = r#"
+pub const CREATE_STATE_TABLE: &str = r#"
 CREATE TABLE "state" (
     "id" blob NOT NULL,
     "state" blob NOT NULL,
@@ -7,6 +7,6 @@ CREATE TABLE "state" (
     "valid" blob NOT NULL,
     "size" integer NOT NULL,
     "is_valid" integer NOT NULL,
-    PRIMARY KEY ("account")
+    PRIMARY KEY ("id")
   )
 "#;

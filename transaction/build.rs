@@ -4,6 +4,7 @@ use pb_rs::types::{Config, FileDescriptor, RpcService};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::vec::Vec;
 
 fn main() {
     fn generate_rpc_test<W: Write + ?Sized>(
@@ -54,9 +55,9 @@ fn main() {
         nostd: true,
     };
 
-    let contract_config = Config {
-        in_file: PathBuf::from("./proto/contract.proto"), // contract下
-        out_file: quick_dest.join("contract.rs"),
+    let state_config = Config {
+        in_file: PathBuf::from("../state/proto/state.proto"), // state下
+        out_file: quick_dest.join("state.rs"),
         single_module: true,
         import_search_path: vec![PathBuf::from("../../common/proto")], // 目标目录下
         no_output: false,
@@ -72,8 +73,30 @@ fn main() {
         nostd: true,
     };
 
+    let transaction_config = Config {
+        in_file: PathBuf::from("./proto/transaction.proto"), // state下
+        out_file: quick_dest.join("transaction.rs"),
+        single_module: true,
+        import_search_path: vec![
+            PathBuf::from("../../common/proto"),
+            PathBuf::from("../../state/proto"),
+        ], // 目标目录下
+        no_output: false,
+        error_cycle: false,
+        headers: false,
+        dont_use_cow: false,
+        custom_struct_derive: vec![],
+        custom_repr: None,
+        custom_rpc_generator: Box::new(|rpc, writer| generate_rpc_test(rpc, writer)),
+        custom_includes: Vec::new(),
+        owned: false,
+        hashbrown: false,
+        nostd: true,
+    };
+
     let mut v: Vec<Config> = Vec::new();
-    v.push(contract_config);
+    v.push(transaction_config);
+    v.push(state_config);
     v.push(common_config);
 
     FileDescriptor::run(&v).unwrap();
