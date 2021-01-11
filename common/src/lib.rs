@@ -3,4 +3,5 @@
 extern crate alloc;
 
 pub mod err;
+pub mod hash_utils;
 pub mod proto_utils;

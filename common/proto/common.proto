@@ -10,3 +10,8 @@ message Msg{
     int32 code = 1;
     string detail = 2;
 }
+
+
+message BytesList{
+    repeated bytes params = 1;
+}

@@ -26,9 +26,10 @@ message TranscationOutput {
 
 // Signed Transaction
 message Transaction {
+  bytes id = 4;
   sint64 timestamp = 1;
   repeated TranscationInput inputs = 2;
-  repeated TranscationOutput outputs = 3;
+  repeated State outputs = 3;
 }
 
 ```

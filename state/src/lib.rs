@@ -5,13 +5,12 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::{borrow::Cow, string::String, vec, vec::Vec};
-use common::{err::Err, proto_utils};
+use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
 use mw_rt::actor::Actor;
 
 mod call_package;
 mod proto;
-mod utils;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -54,7 +53,7 @@ impl State {
             return pair.0 as i32;
         }
 
-        let state_id = crate::utils::hash::gen_state_id(bytes);
+        let state_id = hash_utils::gen_hash_32_id(bytes);
 
         let mut sql = proto::common::Sql::default();
 
