@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::{borrow::Cow, string::String, string::ToString, vec, vec::Vec};
+use alloc::{string::String, string::ToString, vec, vec::Vec};
 use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
 use mw_rt::actor::Actor;
@@ -60,9 +60,8 @@ impl Actor for Transactione {
 impl Transactione {
     #[mw_rt::actor::method]
     pub async fn list_txs(&mut self) -> Vec<u8> {
-        let sql_str = "select * from transaction";
         let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Borrowed(sql_str);
+        sql.sql = "select * from transaction".into();
         let result = proto_utils::qb_serialize(&sql);
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
@@ -77,10 +76,9 @@ impl Transactione {
 
     #[mw_rt::actor::method]
     pub async fn get_tx(&mut self, id: &[u8]) -> Vec<u8> {
-        let sql_str = "select * from where transaction where id = $1";
         let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Borrowed(sql_str);
-        sql.params.push(Cow::Owned(id.to_vec()));
+        sql.sql = "select * from where transaction where id = $1".into();
+        sql.params.push(id.into());
         let result = proto_utils::qb_serialize(&sql);
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
@@ -93,7 +91,6 @@ impl Transactione {
         result
     }
 
-    // 感觉要传一个
     #[mw_rt::actor::method]
     pub async fn send_tx(&mut self, bare_tx: &[u8]) -> i32 {
         let result =
@@ -113,8 +110,8 @@ impl Transactione {
         for item in state_id_list.iter_mut() {
             // 查库
             let mut sql = proto::common::Sql::default();
-            sql.sql = Cow::Borrowed(sql::QUERY_STATE_BY_ID);
-            sql.params.push(Cow::Owned(item.to_vec()));
+            sql.sql = sql::QUERY_STATE_BY_ID.into();
+            sql.params.push(item.clone());
             let result = proto_utils::qb_serialize(&sql);
             if result.is_err() {
                 let pair = Err::ProtoErrors(result.unwrap_err()).get();
@@ -138,7 +135,10 @@ impl Transactione {
             let state = result.unwrap();
             let op = args.get(count);
             count = count + 1;
-            if op.is_none() {}
+            if op.is_none() {
+                let pair = Err::Null("get arg null".to_string()).get();
+                return pair.0 as i32;
+            }
             let arg = op.unwrap().to_vec();
 
             let mut signed_state = proto::state::SignedState::default();
@@ -149,7 +149,7 @@ impl Transactione {
             signed_state.id = item.clone();
             let mut tx_input = proto::transaction::TranscationInput::default();
             tx_input.state = Some(signed_state);
-            tx_input.arguments = Cow::Owned(arg);
+            tx_input.arguments = arg.into();
             let result = proto_utils::qb_serialize(&tx_input);
             if result.is_err() {
                 let pair = Err::ProtoErrors(result.unwrap_err()).get();
@@ -179,7 +179,7 @@ impl Transactione {
             return pair.0 as i32;
         }
         let id = hash_utils::gen_hash_32_id(result.unwrap().as_slice());
-        tx.id = Cow::Owned(id);
+        tx.id = id.into();
         let result = proto_utils::qb_serialize(&tx);
         if result.is_err() {
             let pair = Err::ProtoErrors(result.unwrap_err()).get();
@@ -212,7 +212,7 @@ impl Transactione {
                         Some(state) => {
                             match proto_utils::qb_serialize(input) {
                                 Ok(v) => {
-                                    input_param.params.push(Cow::Owned(v));
+                                    input_param.params.push(v.into());
                                 }
                                 Err(err) => {
                                     let pair = Err::ProtoErrors(err).get();
@@ -242,8 +242,8 @@ impl Transactione {
 
                             // is_valid to 1
                             let mut sql = proto::common::Sql::default();
-                            sql.sql = Cow::Borrowed("update state set is_valid = 1 where id = $1");
-                            sql.params.push(Cow::Owned(signed_state.id.to_vec()));
+                            sql.sql = "update state set is_valid = 1 where id = $1".into();
+                            sql.params.push(signed_state.id.into());
                             match proto_utils::qb_serialize(&sql) {
                                 Ok(v) => {
                                     let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
@@ -251,10 +251,16 @@ impl Transactione {
                                         Ok(str) => match str.as_str() {
                                             "ok" => {}
                                             "fail" => {
-                                                return -1;
+                                                let pair = Err::SqlExecture(
+                                                    "update state set is_vaild to 1 fail"
+                                                        .to_string(),
+                                                )
+                                                .get();
+                                                return pair.0 as i32;
                                             }
                                             _ => {
-                                                return -1;
+                                                let pair = Err::SqlExecture("update state set is_vaild to 1 unknown error code".to_string()).get();
+                                                return pair.0 as i32;
                                             }
                                         },
                                         Err(err) => {
@@ -286,10 +292,11 @@ impl Transactione {
         for output in outputs.iter_mut() {
             match proto_utils::qb_serialize(output) {
                 Ok(v) => {
-                    output_param.params.push(Cow::Owned(v.clone()));
+                    output_param.params.push(v.clone().into());
                     let result = call_package::state::add_state(v.as_slice()).await;
                     if result != 0 {
-                        return -1;
+                        let pair = Err::CallState("add state fail".to_string()).get();
+                        return pair.0 as i32;
                     }
                 }
                 Err(err) => {
@@ -300,14 +307,15 @@ impl Transactione {
         }
         // 写库transaction
         let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Owned(alloc::format!(
+        sql.sql = alloc::format!(
             r#"insert into transaction(id,inputs,outputs,timestamp) values($1,$2,$3,{})"#,
             transaction.timestamp
-        ));
-        sql.params.push(Cow::Owned(transaction.id.to_vec()));
+        )
+        .into();
+        sql.params.push(transaction.id.into());
         match proto_utils::qb_serialize(&input_param) {
             Ok(v) => {
-                sql.params.push(Cow::Owned(v));
+                sql.params.push(v.into());
             }
             Err(err) => {
                 let pair = Err::ProtoErrors(err).get();
@@ -317,7 +325,7 @@ impl Transactione {
 
         match proto_utils::qb_serialize(&output_param) {
             Ok(v) => {
-                sql.params.push(Cow::Owned(v));
+                sql.params.push(v.into());
             }
             Err(err) => {
                 let pair = Err::ProtoErrors(err).get();
@@ -332,9 +340,18 @@ impl Transactione {
                     Ok(str) => match str.as_str() {
                         "ok" => {}
                         "fail" => {
-                            return -1;
+                            let pair =
+                                Err::SqlExecture("update state set is_vaild to 1 fail".to_string())
+                                    .get();
+                            return pair.0 as i32;
                         }
-                        _ => {}
+                        _ => {
+                            let pair = Err::SqlExecture(
+                                "update state set is_vaild to 1 unknown error code".to_string(),
+                            )
+                            .get();
+                            return pair.0 as i32;
+                        }
                     },
                     Err(err) => {
                         let pair = Err::FromUtf8Error(err).get();

@@ -4,7 +4,7 @@ extern crate alloc;
 // extern crate mw_rt;
 
 use alloc::boxed::Box;
-use alloc::{borrow::Cow, string::String, vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
 use mw_rt::actor::Actor;
@@ -57,19 +57,18 @@ impl State {
 
         let mut sql = proto::common::Sql::default();
 
-        let sql_str = &alloc::format!(
+        sql.sql = alloc::format!(
             r#"
             insert into state (id,state,owner,lock,valid,size,is_valid) 
             values ($1,$2,$3,$4,$5,{},{})
         "#,
             state.size,
             0
-        );
+        )
+        .into();
 
-        sql.sql = Cow::Borrowed(sql_str);
-
-        sql.params.push(Cow::Owned(state_id));
-        sql.params.push(Cow::Owned(bytes.to_vec()));
+        sql.params.push(state_id.into());
+        sql.params.push(bytes.into());
         sql.params.push(state.owner);
         sql.params.push(state.lock);
         sql.params.push(state.valid);
@@ -102,15 +101,14 @@ impl State {
 
     #[mw_rt::actor::method]
     pub async fn delete_state(&mut self, bytes: &[u8]) -> i32 {
-        let sql_str = alloc::format!(
+        let mut sql = proto::common::Sql::default();
+        sql.sql = alloc::format!(
             r#"
             delete from state where id = $1
         "#
-        );
-
-        let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Owned(sql_str);
-        sql.params.push(Cow::Owned(bytes.to_vec()));
+        )
+        .into();
+        sql.params.push(bytes.into());
 
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
@@ -139,16 +137,15 @@ impl State {
     //external interface
     #[mw_rt::actor::method]
     pub async fn list_state(&mut self, page: usize, item: usize, _order: usize) -> Vec<u8> {
-        let sql_str = alloc::format!(
+        let mut sql = proto::common::Sql::default();
+        sql.sql = alloc::format!(
             r#"
             select * from state limit {} offset {}
         "#,
             item,
             item * (page - 1)
-        );
-
-        let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Owned(sql_str);
+        )
+        .into();
 
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
@@ -163,15 +160,14 @@ impl State {
 
     #[mw_rt::actor::method]
     pub async fn get_state(&mut self, bytes: &[u8]) -> Vec<u8> {
-        let sql_str = alloc::format!(
+        let mut sql = proto::common::Sql::default();
+        sql.sql = alloc::format!(
             r#"
             select * from state where id = $1
         "#
-        );
-
-        let mut sql = proto::common::Sql::default();
-        sql.sql = Cow::Owned(sql_str);
-        sql.params.push(Cow::Owned(bytes.to_vec()));
+        )
+        .into();
+        sql.params.push(bytes.into());
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
