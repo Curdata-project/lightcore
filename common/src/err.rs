@@ -11,6 +11,7 @@ pub enum Err {
     UnlockFail(i32),
     SqlExecture(String),
     CallState(String),
+    AccountErrors(String),
 }
 
 impl Err {
@@ -48,6 +49,7 @@ impl Err {
             Err::UnlockFail(err) => (20010, alloc::format!("UnlockFail ERROR:{:?}", err)),
             Err::SqlExecture(err) => (20011, alloc::format!("SqlExecture ERROR:{:?}", err)),
             Err::CallState(err) => (20012, alloc::format!("CallState ERROR:{:?}", err)),
+            Err::AccountErrors(err) => (20013, alloc::format!("Account ERROR:{:?}", err)),
         };
     }
 }
