@@ -2,7 +2,7 @@
 #![feature(default_alloc_error_handler)]
 extern crate alloc;
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, collections::BTreeMap};
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
@@ -201,6 +201,55 @@ impl Transactione {
 
         let mut input_param = proto::common::BytesList::default();
         let mut output_param = proto::common::BytesList::default();
+
+        let mut inpus_size = 0;
+        let mut outputs_size = 0;
+        // 验证inputs是否可用,从链上获取可用state列表然后对比
+        //TODO 去server获取
+        let available_map: BTreeMap<Vec<u8>, bool> = BTreeMap::new();
+
+        //获取inputs的 总长度和查看是否都可用
+        for input in inputs.iter() {
+            if input.state.is_none() {
+                let pair = Err::Null("input is null".to_string()).get();
+                return pair.0 as i32;
+            }
+
+            match input.state.clone() {
+                Some(signed_state) => {
+                    match signed_state.state.clone() {
+                        Some(state) => {
+                            inpus_size = inpus_size + state.size;
+                            //判断map中是否有这个可用state
+                            match available_map.get(&signed_state.id.to_vec()) {
+                                Some(_b) => {}
+                                None => {
+                                    let pair = Err::Null("the state not".to_string()).get();
+                                    return pair.0 as i32;
+                                }
+                            };
+                        }
+                        None => {
+                            let pair = Err::Null("state is null".to_string()).get();
+                            return pair.0 as i32;
+                        }
+                    };
+                }
+                None => {
+                    let pair = Err::Null("signed state is null".to_string()).get();
+                    return pair.0 as i32;
+                }
+            }
+        }
+
+        for output in outputs.iter() {
+            outputs_size = outputs_size + output.size;
+        }
+
+        if outputs_size != inpus_size {
+            return -2;
+        }
+
         //消库 state
         for input in inputs.iter_mut() {
             if input.state.is_none() {
@@ -241,45 +290,45 @@ impl Transactione {
                             };
 
                             // is_valid to 1
-                            let mut sql = proto::common::Sql::default();
-                            sql.sql = "update state set is_valid = 1 where id = $1".into();
-                            sql.params.push(signed_state.id.into());
-                            match proto_utils::qb_serialize(&sql) {
-                                Ok(v) => {
-                                    let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
-                                    match String::from_utf8(result) {
-                                        Ok(str) => match str.as_str() {
-                                            "ok" => {}
-                                            "fail" => {
-                                                let pair = Err::SqlExecture(
-                                                    "update state set is_vaild to 1 fail"
-                                                        .to_string(),
-                                                )
-                                                .get();
-                                                return pair.0 as i32;
-                                            }
-                                            _ => {
-                                                let pair = Err::SqlExecture("update state set is_vaild to 1 unknown error code".to_string()).get();
-                                                return pair.0 as i32;
-                                            }
-                                        },
-                                        Err(err) => {
-                                            let pair = Err::FromUtf8Error(err).get();
-                                            return pair.0 as i32;
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    let pair = Err::ProtoErrors(err).get();
-                                    return pair.0 as i32;
-                                }
-                            }
+                            // let mut sql = proto::common::Sql::default();
+                            // sql.sql = "update state set is_valid = 1 where id = $1".into();
+                            // sql.params.push(signed_state.id.into());
+                            // match proto_utils::qb_serialize(&sql) {
+                            //     Ok(v) => {
+                            //         let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
+                            //         match String::from_utf8(result) {
+                            //             Ok(str) => match str.as_str() {
+                            //                 "ok" => {}
+                            //                 "fail" => {
+                            //                     let pair = Err::SqlExecture(
+                            //                         "update state set is_vaild to 1 fail"
+                            //                             .to_string(),
+                            //                     )
+                            //                     .get();
+                            //                     return pair.0 as i32;
+                            //                 }
+                            //                 _ => {
+                            //                     let pair = Err::SqlExecture("update state set is_vaild to 1 unknown error code".to_string()).get();
+                            //                     return pair.0 as i32;
+                            //                 }
+                            //             },
+                            //             Err(err) => {
+                            //                 let pair = Err::FromUtf8Error(err).get();
+                            //                 return pair.0 as i32;
+                            //             }
+                            //         }
+                            //     }
+                            //     Err(err) => {
+                            //         let pair = Err::ProtoErrors(err).get();
+                            //         return pair.0 as i32;
+                            //     }
+                            // }
                         }
                         None => {
                             let pair = Err::Null("state is null".to_string()).get();
                             return pair.0 as i32;
                         }
-                    }
+                    };
                 }
                 None => {
                     let pair = Err::Null("signed state is null".to_string()).get();

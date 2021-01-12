@@ -11,6 +11,7 @@ use mw_rt::actor::Actor;
 
 mod call_package;
 mod proto;
+mod sql;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -21,6 +22,40 @@ pub struct State {}
 #[async_trait::async_trait]
 impl Actor for State {
     fn new() -> Self {
+        let runtime = mw_rt::runtime::Runtime::new();
+        runtime.spawn(async move {
+            let result = mw_std::sql::sql_table_exist("state".as_bytes()).await;
+
+            // exist=0
+            if result != 0 {
+                let mut sql = proto::common::Sql::default();
+                sql.sql = sql::CREATE_STATE_TABLE.into();
+                match proto_utils::qb_serialize(&sql) {
+                    Ok(v) => {
+                        let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
+                        match String::from_utf8(result) {
+                            Ok(str) => match str.as_str() {
+                                "ok" => {}
+                                "fail" => {
+                                    panic!("init db fail");
+                                }
+                                _ => {
+                                    panic!("init db fail");
+                                }
+                            },
+                            Err(err) => {
+                                let pair = Err::FromUtf8Error(err).get();
+                                mw_std::debug::println(pair.1.as_str());
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        let pair = Err::ProtoErrors(err).get();
+                        mw_std::debug::println(pair.1.as_str());
+                    }
+                }
+            }
+        });
         State {}
     }
 
