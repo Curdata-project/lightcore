@@ -95,7 +95,7 @@ impl Contract {
             let e = Err::Null("load handler is null".to_string());
             let pair = e.get();
             msg.code = pair.0 as i32;
-            msg.detail = Cow::Owned(pair.1);
+            msg.detail = pair.1.into();
 
             contract_id.msg = Some(msg);
             let result = proto_utils::qb_serialize(&contract_id);
@@ -113,14 +113,14 @@ impl Contract {
         let instance = instance_op.unwrap();
         let handle = instance.handle.unwrap().to_be_bytes(); //小端
 
-        contract_id.contract_id = Cow::Borrowed(&handle);
+        contract_id.contract_id = handle.to_vec().into();
 
         let result = proto_utils::qb_serialize(&contract_id);
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
             let pair = e.get();
             msg.code = pair.0 as i32;
-            msg.detail = Cow::Owned(pair.1);
+            msg.detail = pair.1.into();
 
             contract_id.msg = Some(msg);
             let result = proto_utils::qb_serialize(&contract_id);
@@ -148,7 +148,7 @@ impl Contract {
             .iter()
             .map(|i| {
                 let bytes = i.to_be_bytes().to_vec();
-                Cow::Owned(bytes)
+                bytes.into()
             })
             .collect();
 
