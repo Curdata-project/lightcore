@@ -15,3 +15,7 @@ message Msg{
 message BytesList{
     repeated bytes params = 1;
 }
+
+message AvailableStateList{
+    repeated bytes params = 1;
+}
