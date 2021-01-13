@@ -12,7 +12,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use common::{err::Err, hash_utils, proto_utils};
+use common::{err::Err, proto_utils};
 use mw_rt::actor::Actor;
 
 mod cypher;
@@ -122,7 +122,7 @@ impl Actor for Keystore {
 #[mw_rt::actor::expose]
 impl Keystore {
     #[mw_rt::actor::method]
-    pub async fn list_accounts(&mut self, page: usize, item: usize, order: usize) -> Vec<u8> {
+    pub async fn list_accounts(&mut self, page: usize, item: usize, _order: usize) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
         sql.sql = alloc::format!(
             "select * from keystore limit {} offset {}",
@@ -616,8 +616,34 @@ impl Keystore {
                             }
                         }
                     }
-                    proto::keystore::mod_VerifySign::OneOfVerfySign::PubVerifySign(pvs) => {}
-                    proto::keystore::mod_VerifySign::OneOfVerfySign::None => {}
+                    proto::keystore::mod_VerifySign::OneOfVerfySign::PubVerifySign(pvs) => {
+                        match cypher::ed_25519::verify_sign(
+                            pvs.public_key.as_ref(),
+                            pvs.sign.as_ref(),
+                            pvs.message.as_ref(),
+                        ) {
+                            Some(b) => {
+                                if b {
+                                    return 0;
+                                } else {
+                                    let pair =
+                                        Err::AccountErrors("public verify sign fail".to_string())
+                                            .get();
+                                    return pair.0 as i32;
+                                }
+                            }
+                            None => {
+                                let pair =
+                                    Err::AccountErrors("public verify sign is null".to_string())
+                                        .get();
+                                return pair.0 as i32;
+                            }
+                        }
+                    }
+                    proto::keystore::mod_VerifySign::OneOfVerfySign::None => {
+                        let pair = Err::AccountErrors("param is null".to_string()).get();
+                        return pair.0 as i32;
+                    }
                 }
             }
             Err(err) => {
@@ -625,16 +651,138 @@ impl Keystore {
                 return pair.0 as i32;
             }
         };
-        0
     }
 
     #[mw_rt::actor::method]
-    pub async fn lock_account(&mut self, btes: &[u8]) -> i32 {
-        0
+    pub async fn lock_account(&mut self, bytes: &[u8]) -> i32 {
+        match quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(bytes) {
+            Ok(account_msg) => {
+                //检查是否已经解锁
+                match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
+                    Some(v) => {
+                        if v == 1 {
+                            let pair = Err::AccountErrors("account already lock".to_string()).get();
+                            return pair.0 as i32;
+                        }
+                    }
+                    None => {
+                        let pair =
+                            Err::AccountErrors("account not exist lock state".to_string()).get();
+                        return pair.0 as i32;
+                    }
+                };
+                let encrypt_code = account_msg.encrypt_code.as_ref();
+                let account = account_msg.account.to_vec();
+                let mut sql = proto::common::Sql::default();
+                sql.sql = "select * from keystore where account = $1".into();
+                sql.params.push(account.into());
+
+                match proto_utils::qb_serialize(&sql) {
+                    Ok(v) => {
+                        let result = mw_std::sql::sql_execute(v.as_slice(), 1).await;
+                        match quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(
+                            result.as_slice(),
+                        ) {
+                            Ok(keystore) => {
+                                let encrypt_code_decode = cypher::xchacha20::xchacha20_decryption(
+                                    encrypt_code,
+                                    keystore.nonce.as_ref(),
+                                    keystore.encrypt_code.as_ref(),
+                                );
+
+                                if encrypt_code_decode != encrypt_code {
+                                    let pair =
+                                        Err::AccountErrors("encrypt code is error".to_string())
+                                            .get();
+                                    return pair.0 as i32;
+                                }
+
+                                crate::STATEMAP.insert(account_msg.account.as_ref().to_vec(), 1);
+                                return 0;
+                            }
+                            Err(err) => {
+                                let pair = Err::ProtoErrors(err).get();
+                                return pair.0 as i32;
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        let pair = Err::ProtoErrors(err).get();
+                        return pair.0 as i32;
+                    }
+                }
+            }
+            Err(err) => {
+                let pair = Err::ProtoErrors(err).get();
+                return pair.0 as i32;
+            }
+        }
     }
 
     #[mw_rt::actor::method]
-    pub async fn unlock_account(&mut self, btes: &[u8]) -> i32 {
-        0
+    pub async fn unlock_account(&mut self, bytes: &[u8]) -> i32 {
+        match quick_protobuf::deserialize_from_slice::<proto::keystore::AccountMsg>(bytes) {
+            Ok(account_msg) => {
+                //检查是否已经解锁
+                match crate::STATEMAP.get(account_msg.account.as_ref().to_vec()) {
+                    Some(v) => {
+                        if v == 0 {
+                            let pair =
+                                Err::AccountErrors("account already unlock".to_string()).get();
+                            return pair.0 as i32;
+                        }
+                    }
+                    None => {
+                        let pair =
+                            Err::AccountErrors("account not exist lock state".to_string()).get();
+                        return pair.0 as i32;
+                    }
+                };
+                let encrypt_code = account_msg.encrypt_code.as_ref();
+                let account = account_msg.account.to_vec();
+                let mut sql = proto::common::Sql::default();
+                sql.sql = "select * from keystore where account = $1".into();
+                sql.params.push(account.into());
+
+                match proto_utils::qb_serialize(&sql) {
+                    Ok(v) => {
+                        let result = mw_std::sql::sql_execute(v.as_slice(), 1).await;
+                        match quick_protobuf::deserialize_from_slice::<proto::keystore::Keystore>(
+                            result.as_slice(),
+                        ) {
+                            Ok(keystore) => {
+                                let encrypt_code_decode = cypher::xchacha20::xchacha20_decryption(
+                                    encrypt_code,
+                                    keystore.nonce.as_ref(),
+                                    keystore.encrypt_code.as_ref(),
+                                );
+
+                                if encrypt_code_decode != encrypt_code {
+                                    let pair =
+                                        Err::AccountErrors("encrypt code is error".to_string())
+                                            .get();
+                                    return pair.0 as i32;
+                                }
+
+                                crate::STATEMAP.insert(account_msg.account.as_ref().to_vec(), 0);
+                                return 0;
+                            }
+                            Err(err) => {
+                                let pair = Err::ProtoErrors(err).get();
+                                return pair.0 as i32;
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        let pair = Err::ProtoErrors(err).get();
+                        return pair.0 as i32;
+                    }
+                }
+            }
+            Err(err) => {
+                let pair = Err::ProtoErrors(err).get();
+                return pair.0 as i32;
+            }
+        }
     }
 }
