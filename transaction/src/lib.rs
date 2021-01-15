@@ -33,12 +33,14 @@ impl Actor for Transactione {
 
                 match result {
                     Ok(value) => match value.as_str() {
-                        "ok" => mw_std::debug::println("init db success"),
+                        "ok" => mw_std::debug::println("init transaction db success"),
                         "fail" => {
-                            mw_std::debug::println("init db fail");
-                            panic!("init db fail")
+                            panic!("init transaction db fail")
                         }
-                        _ => mw_std::debug::println(&alloc::format!("sql return:{}", value)),
+                        _ => {
+                            mw_std::debug::println(&alloc::format!("sql return:{}", value));
+                            panic!("init transaction db fail");
+                        },
                     },
                     Err(err) => {
                         let e = Err::FromUtf8Error(err);

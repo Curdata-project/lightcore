@@ -35,12 +35,15 @@ impl Actor for State {
                         let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
                         match String::from_utf8(result) {
                             Ok(str) => match str.as_str() {
-                                "ok" => {}
+                                "ok" => {
+                                    mw_std::debug::println("init state db success");
+                                }
                                 "fail" => {
-                                    panic!("init db fail");
+                                    panic!("init state db fail");
                                 }
                                 _ => {
-                                    panic!("init db fail");
+                                    mw_std::debug::println(&alloc::format!("sql return:{}", value));
+                                    panic!("init state db fail");
                                 }
                             },
                             Err(err) => {
