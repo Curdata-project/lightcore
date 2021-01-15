@@ -79,7 +79,7 @@ impl Transactione {
     #[mw_rt::actor::method]
     pub async fn get_tx(&mut self, id: &[u8]) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
-        sql.sql = "select * from where transaction where id = $1".into();
+        sql.sql = "select * from where transaction where id = ?".into();
         sql.params.push(id.into());
         let result = proto_utils::qb_serialize(&sql);
         if result.is_err() {
@@ -291,40 +291,6 @@ impl Transactione {
                                 return pair.0 as i32;
                             };
 
-                            // is_valid to 1
-                            // let mut sql = proto::common::Sql::default();
-                            // sql.sql = "update state set is_valid = 1 where id = $1".into();
-                            // sql.params.push(signed_state.id.into());
-                            // match proto_utils::qb_serialize(&sql) {
-                            //     Ok(v) => {
-                            //         let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
-                            //         match String::from_utf8(result) {
-                            //             Ok(str) => match str.as_str() {
-                            //                 "ok" => {}
-                            //                 "fail" => {
-                            //                     let pair = Err::SqlExecture(
-                            //                         "update state set is_vaild to 1 fail"
-                            //                             .to_string(),
-                            //                     )
-                            //                     .get();
-                            //                     return pair.0 as i32;
-                            //                 }
-                            //                 _ => {
-                            //                     let pair = Err::SqlExecture("update state set is_vaild to 1 unknown error code".to_string()).get();
-                            //                     return pair.0 as i32;
-                            //                 }
-                            //             },
-                            //             Err(err) => {
-                            //                 let pair = Err::FromUtf8Error(err).get();
-                            //                 return pair.0 as i32;
-                            //             }
-                            //         }
-                            //     }
-                            //     Err(err) => {
-                            //         let pair = Err::ProtoErrors(err).get();
-                            //         return pair.0 as i32;
-                            //     }
-                            // }
                         }
                         None => {
                             let pair = Err::Null("state is null".to_string()).get();
@@ -359,7 +325,7 @@ impl Transactione {
         // 写库transaction
         let mut sql = proto::common::Sql::default();
         sql.sql = alloc::format!(
-            r#"insert into transaction(id,inputs,outputs,timestamp) values($1,$2,$3,{})"#,
+            "insert into transaction(id,inputs,outputs,timestamp) values(?,?,?,{})",
             transaction.timestamp
         )
         .into();
