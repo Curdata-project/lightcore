@@ -22,6 +22,10 @@ pub struct State {}
 #[async_trait::async_trait]
 impl Actor for State {
     fn new() -> Self {
+        // let v:Vec<u8> = Vec::new(); 
+        // let mut v = quick_protobuf::BytesWriter::new(v.as_slice());
+        // let w = quick_protobuf::Writer::new(&mut v);
+
         let runtime = mw_rt::runtime::Runtime::new();
         runtime.spawn(async move {
             let result = mw_std::sql::sql_table_exist("state".as_bytes()).await;

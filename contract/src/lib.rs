@@ -30,8 +30,12 @@ pub struct LoadHandleMap {
 
 impl LoadHandleMap {
     fn new() -> Self {
+        let runtime = mw_rt::runtime::Runtime::new();
+        runtime.spawn(async move {
+            let result = mw_std::sql::sql_table_exist("contract".as_bytes()).await;
+        });
         let map = RefCell::new(BTreeMap::new());
-
+        mw_std::debug::println("init contract success");
         Self { map }
     }
 
