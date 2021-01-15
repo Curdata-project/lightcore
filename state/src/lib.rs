@@ -42,7 +42,7 @@ impl Actor for State {
                                     panic!("init state db fail");
                                 }
                                 _ => {
-                                    mw_std::debug::println(&alloc::format!("sql return:{}", value));
+                                    mw_std::debug::println(&alloc::format!("sql return:{}", str));
                                     panic!("init state db fail");
                                 }
                             },
