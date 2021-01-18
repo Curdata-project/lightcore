@@ -27,26 +27,40 @@ impl Actor for Transactione {
             let result = mw_std::sql::sql_table_exist(table_name).await;
 
             if result != 0 {
-                let v = mw_std::sql::sql_execute(sql::CREATE_TRANSACTION_TABLE.as_bytes(), 0).await;
-
-                let result = String::from_utf8(v);
-
-                match result {
-                    Ok(value) => match value.as_str() {
-                        "ok" => mw_std::debug::println("init transaction db success"),
-                        "fail" => {
-                            panic!("init transaction db fail")
+                let mut sql = proto::common::Sql::default();
+                sql.sql = sql::CREATE_TRANSACTION_TABLE.into();
+                match proto_utils::qb_serialize(&sql) {
+                    Ok(v) => {
+                        let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
+                        match String::from_utf8(result) {
+                            Ok(str) => match str.as_str() {
+                                "ok" => {
+                                    mw_std::debug::println("init transaction db success");
+                                }
+                                "fail" => {
+                                    let pair =
+                                        Err::InitErrors("init transaction db fail".to_string())
+                                            .get();
+                                    panic!(pair.1.as_str());
+                                }
+                                _ => {
+                                    let pair = Err::InitErrors(
+                                        "init transaction db fail,execute sql result unknown"
+                                            .to_string(),
+                                    )
+                                    .get();
+                                    panic!(pair.1.as_str());
+                                }
+                            },
+                            Err(err) => {
+                                let pair = Err::FromUtf8Error(err).get();
+                                mw_std::debug::println(pair.1.as_str());
+                            }
                         }
-                        _ => {
-                            mw_std::debug::println(&alloc::format!("sql return:{}", value));
-                            panic!("init transaction db fail");
-                        },
-                    },
+                    }
                     Err(err) => {
-                        let e = Err::FromUtf8Error(err);
-                        let pair = e.get();
+                        let pair = Err::ProtoErrors(err).get();
                         mw_std::debug::println(pair.1.as_str());
-                        panic!(pair.1.as_str());
                     }
                 }
             }
@@ -290,7 +304,6 @@ impl Transactione {
                                 let pair = Err::UnlockFail(result).get();
                                 return pair.0 as i32;
                             };
-
                         }
                         None => {
                             let pair = Err::Null("state is null".to_string()).get();

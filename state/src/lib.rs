@@ -4,7 +4,7 @@ extern crate alloc;
 // extern crate mw_rt;
 
 use alloc::boxed::Box;
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{string::String, string::ToString, vec, vec::Vec};
 use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
 use mw_rt::actor::Actor;
@@ -39,22 +39,27 @@ impl Actor for State {
                                     mw_std::debug::println("init state db success");
                                 }
                                 "fail" => {
-                                    panic!("init state db fail");
+                                    let pair =
+                                        Err::InitErrors("init state db fail".to_string()).get();
+                                    panic!(pair.1.as_str());
                                 }
                                 _ => {
-                                    mw_std::debug::println(&alloc::format!("sql return:{}", str));
-                                    panic!("init state db fail");
+                                    let pair = Err::InitErrors(
+                                        "init state db fail,execute sql result unknown".to_string(),
+                                    )
+                                    .get();
+                                    panic!(pair.1.as_str());
                                 }
                             },
                             Err(err) => {
                                 let pair = Err::FromUtf8Error(err).get();
-                                mw_std::debug::println(pair.1.as_str());
+                                panic!(pair.1.as_str());
                             }
                         }
                     }
                     Err(err) => {
                         let pair = Err::ProtoErrors(err).get();
-                        mw_std::debug::println(pair.1.as_str());
+                        panic!(pair.1.as_str());
                     }
                 }
             }

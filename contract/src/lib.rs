@@ -67,6 +67,7 @@ pub struct Contract {}
 #[async_trait::async_trait]
 impl Actor for Contract {
     fn new() -> Self {
+        LOADHANDLEMAP.init();
         Contract {}
     }
 
