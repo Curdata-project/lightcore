@@ -35,7 +35,26 @@ fn main() {
     if !quick_dest.exists() {
         fs::create_dir(quick_dest).unwrap();
     }
-    let config = Config {
+
+    let common_config = Config {
+        in_file: PathBuf::from("../common/proto/common.proto"),
+        out_file: quick_dest.join("common.rs"),
+        single_module: true,
+        import_search_path: vec![PathBuf::from("../../common/proto")],
+        no_output: false,
+        error_cycle: false,
+        headers: false,
+        dont_use_cow: false,
+        custom_struct_derive: vec![],
+        custom_repr: None,
+        custom_rpc_generator: Box::new(|rpc, writer| generate_rpc_test(rpc, writer)),
+        custom_includes: Vec::new(),
+        owned: false,
+        hashbrown: false,
+        nostd: true,
+    };
+
+    let keystore_config = Config {
         in_file: PathBuf::from("./proto/keystore.proto"),
         out_file: quick_dest.join("keystore.rs"),
         single_module: true,
@@ -52,5 +71,9 @@ fn main() {
         hashbrown: false,
         nostd: true,
     };
-    FileDescriptor::write_proto(&config).unwrap();
+    let mut v: Vec<Config> = Vec::new();
+    v.push(keystore_config);
+    v.push(common_config);
+
+    FileDescriptor::run(&v).unwrap();
 }

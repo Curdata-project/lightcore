@@ -4,13 +4,14 @@ extern crate alloc;
 // extern crate mw_rt;
 
 use alloc::boxed::Box;
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{string::String, string::ToString, vec, vec::Vec};
 use common::{err::Err, hash_utils, proto_utils};
 use core::cell::RefCell;
 use mw_rt::actor::Actor;
 
 mod call_package;
 mod proto;
+mod sql;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -21,6 +22,48 @@ pub struct State {}
 #[async_trait::async_trait]
 impl Actor for State {
     fn new() -> Self {
+        let runtime = mw_rt::runtime::Runtime::new();
+        runtime.spawn(async move {
+            let result = mw_std::sql::sql_table_exist("state".as_bytes()).await;
+
+            // exist=0
+            if result != 0 {
+                let mut sql = proto::common::Sql::default();
+                sql.sql = sql::CREATE_STATE_TABLE.into();
+                match proto_utils::qb_serialize(&sql) {
+                    Ok(v) => {
+                        let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
+                        match String::from_utf8(result) {
+                            Ok(str) => match str.as_str() {
+                                "ok" => {
+                                    mw_std::debug::println("init state db success");
+                                }
+                                "fail" => {
+                                    let pair =
+                                        Err::InitErrors("init state db fail".to_string()).get();
+                                    panic!(pair.1.as_str());
+                                }
+                                _ => {
+                                    let pair = Err::InitErrors(
+                                        "init state db fail,execute sql result unknown".to_string(),
+                                    )
+                                    .get();
+                                    panic!(pair.1.as_str());
+                                }
+                            },
+                            Err(err) => {
+                                let pair = Err::FromUtf8Error(err).get();
+                                panic!(pair.1.as_str());
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        let pair = Err::ProtoErrors(err).get();
+                        panic!(pair.1.as_str());
+                    }
+                }
+            }
+        });
         State {}
     }
 
@@ -58,10 +101,7 @@ impl State {
         let mut sql = proto::common::Sql::default();
 
         sql.sql = alloc::format!(
-            r#"
-            insert into state (id,state,owner,lock,valid,size,is_valid) 
-            values ($1,$2,$3,$4,$5,{},{})
-        "#,
+            "insert into state (id,state,owner,lock,valid,size,is_valid) values (?,?,?,?,?,{},{})",
             state.size,
             0
         )
@@ -102,12 +142,7 @@ impl State {
     #[mw_rt::actor::method]
     pub async fn delete_state(&mut self, bytes: &[u8]) -> i32 {
         let mut sql = proto::common::Sql::default();
-        sql.sql = alloc::format!(
-            r#"
-            delete from state where id = $1
-        "#
-        )
-        .into();
+        sql.sql = alloc::format!("delete from state where id = ?").into();
         sql.params.push(bytes.into());
 
         let result = common::proto_utils::qb_serialize(&sql);
@@ -139,9 +174,7 @@ impl State {
     pub async fn list_state(&mut self, page: usize, item: usize, _order: usize) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
         sql.sql = alloc::format!(
-            r#"
-            select * from state limit {} offset {}
-        "#,
+            "select * from state limit {} offset {}",
             item,
             item * (page - 1)
         )
@@ -161,12 +194,7 @@ impl State {
     #[mw_rt::actor::method]
     pub async fn get_state(&mut self, bytes: &[u8]) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
-        sql.sql = alloc::format!(
-            r#"
-            select * from state where id = $1
-        "#
-        )
-        .into();
+        sql.sql = alloc::format!("select * from state where id = ?").into();
         sql.params.push(bytes.into());
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
