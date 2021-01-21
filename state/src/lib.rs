@@ -37,6 +37,8 @@ impl Actor for State {
                             Ok(str) => match str.as_str() {
                                 "ok" => {
                                     mw_std::debug::println("init state db success");
+                                    mw_std::notify::notify_number(0, 0);
+
                                 }
                                 "fail" => {
                                     let pair =
@@ -62,6 +64,8 @@ impl Actor for State {
                         panic!(pair.1.as_str());
                     }
                 }
+            } else {
+                mw_std::notify::notify_number(0, 0);
             }
         });
         State {}

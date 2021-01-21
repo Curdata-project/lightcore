@@ -68,6 +68,7 @@ pub struct Contract {}
 impl Actor for Contract {
     fn new() -> Self {
         LOADHANDLEMAP.init();
+        mw_std::notify::notify_number(0, 0);
         Contract {}
     }
 

@@ -36,6 +36,7 @@ impl Actor for Transactione {
                             Ok(str) => match str.as_str() {
                                 "ok" => {
                                     mw_std::debug::println("init transaction db success");
+                                    mw_std::notify::notify_number(0, 0);
                                 }
                                 "fail" => {
                                     let pair =
@@ -63,6 +64,8 @@ impl Actor for Transactione {
                         mw_std::debug::println(pair.1.as_str());
                     }
                 }
+            } else {
+                mw_std::notify::notify_number(0, 0);
             }
         });
 
