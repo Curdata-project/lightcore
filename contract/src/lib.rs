@@ -78,37 +78,27 @@ impl Actor for Contract {
 impl Contract {
     #[mw_rt::actor::method]
     pub async fn load_contract(&mut self, bytes: &[u8]) -> i32 {
+        // mw_std::debug::println(&alloc::format!("{:?}",bytes));
         let instance = mw_std::loader::loader(bytes).await;
+        mw_std::debug::println(&alloc::format!("instance:{:?}",instance));
         if instance.handle.is_none() {
             return -1;
         }
         let result = instance.handle.unwrap();
         LOADHANDLEMAP.insert(instance.handle.unwrap(), instance);
+        let i = LOADHANDLEMAP.get(result);
+        mw_std::debug::println(&alloc::format!("{:?}",i));
         result
     }
 
     #[mw_rt::actor::method]
     pub async fn get_contract(&mut self, id: i32) -> Vec<u8> {
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
-        let mut msg = proto::common::Msg::default();
         let mut contract_id = proto::contract::ContractRef::default();
         if instance_op.is_none() {
-            let e = Err::Null("load handler is null".to_string());
-            let pair = e.get();
-            msg.code = pair.0 as i32;
-            msg.detail = pair.1.into();
+            let pair = Err::Null("load handler is null".to_string()).get();
 
-            contract_id.msg = Some(msg);
-            let result = proto_utils::qb_serialize(&contract_id);
-
-            return match result {
-                Ok(value) => value,
-                Err(err) => {
-                    let e = Err::ProtoErrors(err);
-                    let _pair = e.get();
-                    return vec![];
-                }
-            };
+            return vec![];
         }
 
         let instance = instance_op.unwrap();
@@ -120,10 +110,7 @@ impl Contract {
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
             let pair = e.get();
-            msg.code = pair.0 as i32;
-            msg.detail = pair.1.into();
 
-            contract_id.msg = Some(msg);
             let result = proto_utils::qb_serialize(&contract_id);
 
             return match result {
@@ -144,7 +131,6 @@ impl Contract {
         let v: Vec<i32> = LOADHANDLEMAP.list();
 
         let mut contract_list = proto::contract::ContractList::default();
-        let msg = proto::common::Msg::default();
         let list: Vec<Cow<[u8]>> = v
             .iter()
             .map(|i| {
@@ -154,7 +140,6 @@ impl Contract {
             .collect();
 
         contract_list.contract_list = list;
-        contract_list.msg = Some(msg);
         let result = proto_utils::qb_serialize(&contract_list);
         return match result {
             Ok(value) => value,
@@ -165,6 +150,7 @@ impl Contract {
             }
         };
     }
+    
     #[mw_rt::actor::method]
     pub async fn run_contract(&mut self, id: i32, bytes: &[u8]) -> i32 {
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
