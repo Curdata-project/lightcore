@@ -16,10 +16,10 @@ mod sql;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[mw_rt::actor::actor]
-pub struct Transactione {}
+pub struct Transaction {}
 
 #[async_trait::async_trait]
-impl Actor for Transactione {
+impl Actor for Transaction {
     fn new() -> Self {
         let table_name = "transaction".as_bytes();
         let runtime = mw_rt::runtime::Runtime::new();
@@ -69,14 +69,14 @@ impl Actor for Transactione {
             }
         });
 
-        Transactione {}
+        Transaction {}
     }
 
     async fn init(&mut self) {}
 }
 
 #[mw_rt::actor::expose]
-impl Transactione {
+impl Transaction {
     #[mw_rt::actor::method]
     pub async fn list_txs(&mut self) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
