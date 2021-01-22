@@ -80,6 +80,9 @@ impl Contract {
     #[mw_rt::actor::method]
     pub async fn load_contract(&mut self, bytes: &[u8]) -> i32 {
         // mw_std::debug::println(&alloc::format!("{:?}",bytes));
+        // mw_std::debug::println(&alloc::format!("ptr:{:?},size:{:?}",bytes.as_ptr(),bytes.len()));
+        // mw_std::debug::println("1");
+        // mw_std::debug::println(&alloc::format!("ptr:{:?},size:{:?}",bytes.as_ptr(),bytes.len()));
         let instance = mw_std::loader::loader(bytes).await;
         mw_std::debug::println(&alloc::format!("instance:{:?}",instance));
         if instance.handle.is_none() {

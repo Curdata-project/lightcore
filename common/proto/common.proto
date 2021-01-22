@@ -19,3 +19,7 @@ message BytesList{
 message AvailableStateList{
     repeated bytes params = 1;
 }
+
+message Bytes{
+    bytes param = 1;
+}
