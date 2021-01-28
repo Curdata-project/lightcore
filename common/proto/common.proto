@@ -3,7 +3,16 @@ syntax = "proto3";
 
 message Sql{
     string sql = 1;
-    repeated bytes params = 2;
+    repeated Param params = 2;
+}
+
+message Param{
+    string tp = 1;
+    oneof data {
+        uint64 number = 2;
+        string s = 3;
+        bytes buffer = 4;
+    }
 }
 
 message Msg{

@@ -13,6 +13,7 @@ pub enum Err {
     CallState(String),
     AccountErrors(String),
     InitErrors(String),
+    Transaction(String),
 }
 
 impl Err {
@@ -49,6 +50,7 @@ impl Err {
             Err::CallState(err) => (20014, alloc::format!("20014:CallState:{:?}", err)),
             Err::AccountErrors(err) => (20015, alloc::format!("20015:AccountErrors:{:?}", err)),
             Err::InitErrors(err) => (20016, alloc::format!("20016:Initerrors:{:?}", err)),
+            Err::Transaction(err) => (20017, alloc::format!("20017:Transaction:{:?}",err)),
         };
     }
 }

@@ -79,11 +79,21 @@ impl Actor for Contract {
 impl Contract {
     #[mw_rt::actor::method]
     pub async fn load_contract(&mut self, bytes: &[u8]) -> i32 {
+        mw_std::debug::println("load contract");
+        mw_std::debug::println(&alloc::format!("{:?},{:?}",bytes.as_ptr(),bytes.len()));
         // mw_std::debug::println(&alloc::format!("{:?}",bytes));
-        // mw_std::debug::println(&alloc::format!("ptr:{:?},size:{:?}",bytes.as_ptr(),bytes.len()));
-        // mw_std::debug::println("1");
-        // mw_std::debug::println(&alloc::format!("ptr:{:?},size:{:?}",bytes.as_ptr(),bytes.len()));
-        let instance = mw_std::loader::loader(bytes).await;
+        
+        let result =
+            quick_protobuf::deserialize_from_slice::<proto::common::Bytes>(bytes);
+
+        if result.is_err(){
+            let pair = Err::ProtoErrors(result.unwrap_err()).get();
+            return pair.0 as i32;
+        }
+
+        let bytes = result.unwrap();
+        mw_std::debug::println(&alloc::format!("bytes:{:?}",bytes));
+        let instance = mw_std::loader::loader(bytes.param.to_vec().as_slice()).await;
         mw_std::debug::println(&alloc::format!("instance:{:?}",instance));
         if instance.handle.is_none() {
             return -1;
@@ -157,6 +167,7 @@ impl Contract {
     
     #[mw_rt::actor::method]
     pub async fn run_contract(&mut self, id: i32, bytes: &[u8]) -> i32 {
+        mw_std::debug::println("run contract");
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
         if instance_op.is_none() {
             let e = Err::Null("load handler is null".to_string());
@@ -165,8 +176,16 @@ impl Contract {
         }
 
         let instance = instance_op.unwrap();
+        let result =
+            quick_protobuf::deserialize_from_slice::<proto::common::Bytes>(bytes);
 
-        let result = instance.run(bytes);
+        if result.is_err(){
+            let pair = Err::ProtoErrors(result.unwrap_err()).get();
+            return pair.0 as i32;
+        }
+
+        let bytes = result.unwrap();
+        let result = instance.run(bytes.param.to_vec().as_slice());
         result
     }
 }

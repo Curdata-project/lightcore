@@ -78,6 +78,7 @@ impl Actor for State {
 impl State {
     #[mw_rt::actor::method]
     pub async fn add_state(&mut self, bytes: &[u8]) -> i32 {
+        mw_std::debug::println("start add");
         let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::state::State>(bytes);
 
@@ -89,33 +90,59 @@ impl State {
 
         let state = deserialize_result.unwrap();
 
-        //先验证
-        let valid = state.valid.to_vec();
-        let handle = call_package::contract::load_contract(valid.as_slice()).await;
-        let r = call_package::contract::run_contract(handle, bytes).await;
-
-        if r != 0 {
-            let e = Err::VaildFail(r);
-            let pair = e.get();
-            return pair.0 as i32;
-        }
-
+        mw_std::debug::println(&alloc::format!("{:?}",state));
+        
         let state_id = hash_utils::gen_hash_32_id(bytes);
 
         let mut sql = proto::common::Sql::default();
 
         sql.sql = alloc::format!(
-            "insert into state (id,state,owner,lock,valid,size,is_valid) values (?,?,?,?,?,{},{})",
-            state.size,
-            0
+            "insert into state (id,state,owner,lock,valid,size,is_valid) values (?,?,?,?,?,?,?)"
         )
         .into();
-
-        sql.params.push(state_id.into());
-        sql.params.push(bytes.into());
-        sql.params.push(state.owner);
-        sql.params.push(state.lock);
-        sql.params.push(state.valid);
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(state_id.into());
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(bytes.into());
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(state.owner.into());
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(state.lock.into());
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(state.valid.into());
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "number".into();
+            param.data = proto::common::mod_Param::OneOfdata::number(state.size);
+            param
+        });
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "number".into();
+            param.data = proto::common::mod_Param::OneOfdata::number(0 as u64);
+            param
+        });
+        
 
         let result = proto_utils::qb_serialize(&sql);
 
@@ -127,7 +154,7 @@ impl State {
 
         let bytes = result.unwrap();
         let v = mw_std::sql::sql_execute(bytes.as_slice(), 0).await;
-
+        
         let result = String::from_utf8(v);
         return match result {
             Ok(value) => match value.as_str() {
@@ -147,7 +174,12 @@ impl State {
     pub async fn delete_state(&mut self, bytes: &[u8]) -> i32 {
         let mut sql = proto::common::Sql::default();
         sql.sql = alloc::format!("delete from state where id = ?").into();
-        sql.params.push(bytes.into());
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(bytes.into());
+            param
+        });
 
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
@@ -199,7 +231,12 @@ impl State {
     pub async fn get_state(&mut self, bytes: &[u8]) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
         sql.sql = alloc::format!("select * from state where id = ?").into();
-        sql.params.push(bytes.into());
+        sql.params.push({
+            let mut param = proto::common::Param::default();
+            param.tp = "bytes".into();
+            param.data = proto::common::mod_Param::OneOfdata::buffer(bytes.into());
+            param
+        });
         let result = common::proto_utils::qb_serialize(&sql);
         if result.is_err() {
             let e = Err::ProtoErrors(result.unwrap_err());
