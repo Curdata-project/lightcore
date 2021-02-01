@@ -79,9 +79,7 @@ impl Actor for Contract {
 impl Contract {
     #[mw_rt::actor::method]
     pub async fn load_contract(&mut self, bytes: &[u8]) -> i32 {
-        mw_std::debug::println("load contract");
-        mw_std::debug::println(&alloc::format!("{:?},{:?}",bytes.as_ptr(),bytes.len()));
-        // mw_std::debug::println(&alloc::format!("{:?}",bytes));
+        mw_std::debug::println("load contract start");
         
         let result =
             quick_protobuf::deserialize_from_slice::<proto::common::Bytes>(bytes);
@@ -92,16 +90,14 @@ impl Contract {
         }
 
         let bytes = result.unwrap();
-        mw_std::debug::println(&alloc::format!("bytes:{:?}",bytes));
         let instance = mw_std::loader::loader(bytes.param.to_vec().as_slice()).await;
-        mw_std::debug::println(&alloc::format!("instance:{:?}",instance));
         if instance.handle.is_none() {
             return -1;
         }
         let result = instance.handle.unwrap();
         LOADHANDLEMAP.insert(instance.handle.unwrap(), instance);
         let i = LOADHANDLEMAP.get(result);
-        mw_std::debug::println(&alloc::format!("{:?}",i));
+        mw_std::debug::println("load contract end");
         result
     }
 
@@ -167,7 +163,7 @@ impl Contract {
     
     #[mw_rt::actor::method]
     pub async fn run_contract(&mut self, id: i32, bytes: &[u8]) -> i32 {
-        mw_std::debug::println("run contract");
+        mw_std::debug::println("run contract start");
         let instance_op: Option<mw_std::loader::Instance> = LOADHANDLEMAP.get(id);
         if instance_op.is_none() {
             let e = Err::Null("load handler is null".to_string());
@@ -186,6 +182,7 @@ impl Contract {
 
         let bytes = result.unwrap();
         let result = instance.run(bytes.param.to_vec().as_slice());
+        mw_std::debug::println("run contract end");
         result
     }
 }

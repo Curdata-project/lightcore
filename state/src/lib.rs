@@ -22,6 +22,7 @@ pub struct State {}
 #[async_trait::async_trait]
 impl Actor for State {
     fn new() -> Self {
+        mw_std::debug::println("init state start");
         let runtime = mw_rt::runtime::Runtime::new();
         runtime.spawn(async move {
             let result = mw_std::sql::sql_table_exist("state".as_bytes()).await;
@@ -68,6 +69,7 @@ impl Actor for State {
                 mw_std::notify::notify_number(0, 0);
             }
         });
+        mw_std::debug::println("init state end");
         State {}
     }
 
@@ -78,7 +80,7 @@ impl Actor for State {
 impl State {
     #[mw_rt::actor::method]
     pub async fn add_state(&mut self, bytes: &[u8]) -> i32 {
-        mw_std::debug::println("start add");
+        mw_std::debug::println("state add start");
         let deserialize_result =
             quick_protobuf::deserialize_from_slice::<proto::state::State>(bytes);
 
@@ -90,8 +92,6 @@ impl State {
 
         let state = deserialize_result.unwrap();
 
-        mw_std::debug::println(&alloc::format!("{:?}",state));
-        
         let state_id = hash_utils::gen_hash_32_id(bytes);
 
         let mut sql = proto::common::Sql::default();
@@ -158,9 +158,20 @@ impl State {
         let result = String::from_utf8(v);
         return match result {
             Ok(value) => match value.as_str() {
-                "ok" => 0,
-                "fail" => 1,
-                _ => 1,
+                "ok" => {
+                    mw_std::debug::println("state add end");
+                    0
+                },
+                "fail" => {
+                    let pair = Err::SqlExecture("sql execute fail from insert into state").get();
+                    mw_std::debug::println(pair.1.as_str());
+                    pair.0 as i32
+                },
+                _ => {
+                    let pair = Err::Null("sql execute unknown result from insert into state").get();
+                    mw_std::debug::println(pair.1.as_str());
+                    pair.1 as i32
+                },
             },
             Err(err) => {
                 let e = Err::FromUtf8Error(err);

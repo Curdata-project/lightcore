@@ -21,10 +21,10 @@ pub struct Transaction {}
 #[async_trait::async_trait]
 impl Actor for Transaction {
     fn new() -> Self {
-        let table_name = "transaction".as_bytes();
+        mw_std::debug::println("init transaction start");
         let runtime = mw_rt::runtime::Runtime::new();
         runtime.spawn(async move {
-            let result = mw_std::sql::sql_table_exist(table_name).await;
+            let result = mw_std::sql::sql_table_exist("ts".as_bytes()).await;
 
             if result != 0 {
                 let mut sql = proto::common::Sql::default();
@@ -68,7 +68,7 @@ impl Actor for Transaction {
                 mw_std::notify::notify_number(0, 0);
             }
         });
-
+        mw_std::debug::println("init transaction end");
         Transaction {}
     }
 
@@ -96,7 +96,7 @@ impl Transaction {
     #[mw_rt::actor::method]
     pub async fn get_tx(&mut self, id: &[u8]) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
-        sql.sql = "select * from where transaction where id = ?".into();
+        sql.sql = "select * from where ts where id = ?".into();
         sql.params.push({
             let mut param = proto::common::Param::default();
             param.tp = "bytes".into();
@@ -221,14 +221,13 @@ impl Transaction {
 
     #[mw_rt::actor::method]
     pub async fn send_raw_tx(&mut self, tx: &[u8]) -> i32 {
-        mw_std::debug::println("start");
+        mw_std::debug::println("send raw tx start");
         let result = quick_protobuf::deserialize_from_slice::<proto::transaction::Transaction>(tx);
         if result.is_err() {
             let pair = Err::ProtoErrors(result.unwrap_err()).get();
             return pair.0 as i32;
         }
         let transaction = result.unwrap();
-        mw_std::debug::println(&alloc::format!("{:?}",transaction));
         let mut inputs = transaction.inputs;
         let mut outputs = transaction.outputs;
 
@@ -240,10 +239,10 @@ impl Transaction {
 
 
         for input in inputs.iter() {
-            mw_std::debug::println(&alloc::format!("{:?}",input));
+           
             if input.state.is_none() {
-                mw_std::debug::println("signed state is null");
                 let pair = Err::Null("input is null".to_string()).get();
+                mw_std::debug::println(pair.1.as_str());
                 return pair.0 as i32;
             }
 
@@ -252,47 +251,17 @@ impl Transaction {
                     match signed_state.state.clone() {
                         Some(state) => {
                             inpus_size = inpus_size + state.size;
-                            //验证
-                            let valid_contract = state.valid.to_vec();
-                            // load contract
-                            mw_std::debug::println(&alloc::format!("valid_contract:{:?}",valid_contract));
-                            let mut bytes = proto::common::Bytes::default();
-                            bytes.param = valid_contract.into();
-                            let bytes = proto_utils::qb_serialize(&bytes).unwrap();
-                            // load contract
-                            mw_std::debug::println(&alloc::format!("bytes:{:?}",bytes));
-
-                            let handle =
-                                call_package::contract::load_contract(bytes.as_slice())
-                                    .await;
-                            if handle < 0 {
-                                let pair = Err::Null("load contract result fail".to_string()).get();
-                                return pair.0 as i32;
-                            };
-
-                            let mut bytes = proto::common::Bytes::default();
-                            bytes.param = input.arguments.to_vec().into();
-                            let bytes = proto_utils::qb_serialize(&bytes).unwrap();
-                            // run contract
-                            let result = call_package::contract::run_contract(
-                                handle,
-                                bytes.as_slice(),
-                            )
-                            .await;
-                            if result != 0 {
-                                let pair = Err::UnlockFail(result).get();
-                                return pair.0 as i32;
-                            };
                         }
                         None => {
-                            mw_std::debug::println(" state is null");
                             let pair = Err::Null("state is null".to_string()).get();
+                            mw_std::debug::println(pair.1.as_str());
                             return pair.0 as i32;
                         }
                     };
                 }
                 None => {
                     let pair = Err::Null("signed state is null".to_string()).get();
+                    mw_std::debug::println(pair.1.as_str());
                     return pair.0 as i32;
                 }
             }
@@ -304,6 +273,7 @@ impl Transaction {
 
         if outputs_size != inpus_size {
             let pair = Err::Transaction("Memory sizes are not equal".to_string()).get();
+            mw_std::debug::println(pair.1.as_str());
             return pair.0 as i32;
         }
 
@@ -311,6 +281,7 @@ impl Transaction {
         for input in inputs.iter_mut() {
             if input.state.is_none() {
                 let pair = Err::Null("transaction signed state is null".to_string()).get();
+                mw_std::debug::println(pair.1.as_str());
                 return pair.0 as i32;
             }
             match input.state.clone() {
@@ -323,22 +294,21 @@ impl Transaction {
                                 }
                                 Err(err) => {
                                     let pair = Err::ProtoErrors(err).get();
+                                    mw_std::debug::println(pair.1.as_str());
                                     return pair.0 as i32;
                                 }
                             }
 
                             let lock_contract = state.lock.to_vec();
-                            mw_std::debug::println(&alloc::format!("lock_contract:{:?}",lock_contract));
                             let mut bytes = proto::common::Bytes::default();
                             bytes.param = lock_contract.into();
                             let bytes = proto_utils::qb_serialize(&bytes).unwrap();
-                            // load contract
-                            mw_std::debug::println(&alloc::format!("bytes:{:?}",bytes));
                             let handle =
                                 call_package::contract::load_contract(bytes.as_slice())
                                     .await;
                             if handle < 0 {
                                 let pair = Err::Null("load contract result fail".to_string()).get();
+                                mw_std::debug::println(pair.1.as_str());
                                 return pair.0 as i32;
                             };
 
@@ -358,12 +328,14 @@ impl Transaction {
                         }
                         None => {
                             let pair = Err::Null("state is null".to_string()).get();
+                            mw_std::debug::println(pair.1.as_str());
                             return pair.0 as i32;
                         }
                     };
                 }
                 None => {
                     let pair = Err::Null("signed state is null".to_string()).get();
+                    mw_std::debug::println(pair.1.as_str());
                     return pair.0 as i32;
                 }
             }
@@ -377,11 +349,13 @@ impl Transaction {
                     let result = call_package::state::add_state(v.as_slice()).await;
                     if result != 0 {
                         let pair = Err::CallState("add state fail".to_string()).get();
+                        mw_std::debug::println(pair.1.as_str());
                         return pair.0 as i32;
                     }
                 }
                 Err(err) => {
                     let pair = Err::ProtoErrors(err).get();
+                    mw_std::debug::println(pair.1.as_str());
                     return pair.0 as i32;
                 }
             }
@@ -414,6 +388,7 @@ impl Transaction {
             }
             Err(err) => {
                 let pair = Err::ProtoErrors(err).get();
+                mw_std::debug::println(pair.1.as_str());
                 return pair.0 as i32;
             }
         }
@@ -429,6 +404,7 @@ impl Transaction {
             }
             Err(err) => {
                 let pair = Err::ProtoErrors(err).get();
+                mw_std::debug::println(pair.1.as_str());
                 return pair.0 as i32;
             }
         }
@@ -438,33 +414,38 @@ impl Transaction {
                 let result = mw_std::sql::sql_execute(v.as_slice(), 0).await;
                 match String::from_utf8(result) {
                     Ok(str) => match str.as_str() {
-                        "ok" => {}
+                        "ok" => {
+                            //主链登记
+                            return 0;
+                        }
                         "fail" => {
                             let pair =
-                                Err::SqlExecture("update state set is_vaild to 1 fail".to_string())
+                                Err::SqlExecture("insert transaction err".to_string())
                                     .get();
+                            mw_std::debug::println(pair.1.as_str());
                             return pair.0 as i32;
                         }
                         _ => {
                             let pair = Err::SqlExecture(
-                                "update state set is_vaild to 1 unknown error code".to_string(),
+                                "insert transaction err".to_string(),
                             )
                             .get();
+                            mw_std::debug::println(pair.1.as_str());
                             return pair.0 as i32;
                         }
                     },
                     Err(err) => {
                         let pair = Err::FromUtf8Error(err).get();
+                        mw_std::debug::println(pair.1.as_str());
                         return pair.0 as i32;
                     }
                 }
             }
             Err(err) => {
                 let pair = Err::ProtoErrors(err).get();
+                mw_std::debug::println(pair.1.as_str());
                 return pair.0 as i32;
             }
         }
-        //主链登记一下
-        0
     }
 }
