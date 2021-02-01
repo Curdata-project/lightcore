@@ -67,20 +67,18 @@ pub struct Keystore {}
 #[async_trait::async_trait]
 impl Actor for Keystore {
     fn new() -> Self {
+        //TODO debug
+        mw_std::debug::println("init keystore start");
         // 调用js提供的查表是否存在的方法
         let runtime = mw_rt::runtime::Runtime::new();
         runtime.spawn(async move {
             let flag = mw_std::sql::sql_table_exist("keystore".as_bytes()).await;
-            //TODO debug
-            mw_std::debug::println(&alloc::format!("{}", flag));
             match flag {
                 0 => {
-                    //TODO debug
                     mw_std::debug::println("keystore exist");
                     STATEMAP.init();
                 }
                 1 => {
-                    //TODO debug
                     mw_std::debug::println("keystore not exist");
                     let mut sql = proto::common::Sql::default();
                     sql.sql = Cow::Borrowed(sql::_CREATE_KEYSTORE_TABLE);
@@ -107,10 +105,13 @@ impl Actor for Keystore {
                         }
                     };
                 }
-                _ => {}
+                _ => {
+                    let pair = Err::Null("exec table judge exist unknown return").get();
+                    return pair.0 as i32;
+                }
             }
             //TODO debug
-            mw_std::debug::println("end");
+            mw_std::debug::println("init keystore end");
         });
 
         Keystore {}

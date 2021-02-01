@@ -10,13 +10,16 @@ edition = "2018"
 crate-type = ["cdylib"] 
 
 [dependencies]
-mw-rt = { git = "https://github.com/Curdata-project/marrow", branch = "dev"}
-mw-std = { git = "https://github.com/Curdata-project/marrow", branch = "dev"}
+# mw-rt = { git = "https://github.com/Curdata-project/marrow", branch = "dev"}
+# mw-std = { git = "https://github.com/Curdata-project/marrow", branch = "dev"}
+mw-rt = { path = "../../marrow/mw-rt"}
+mw-std = {path = "../../marrow/mw-std"}
 quick-protobuf = {version = "0.8.0", default-features = false}
 wee_alloc = "0.4"
 lazy_static = {version = "1.4.0", features = ["spin_no_std"]}
 async-trait = "0.1.42"
 common = {path = "../common"}
+hex = { version = "0.4", default-features = false }
 
 [build-dependencies]
 pb-rs = "0.9.1"
