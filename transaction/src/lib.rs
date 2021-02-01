@@ -24,7 +24,7 @@ impl Actor for Transaction {
         mw_std::debug::println("init transaction start");
         let runtime = mw_rt::runtime::Runtime::new();
         runtime.spawn(async move {
-            let result = mw_std::sql::sql_table_exist("ts".as_bytes()).await;
+            let result = mw_std::sql::sql_table_exist("tx".as_bytes()).await;
 
             if result != 0 {
                 let mut sql = proto::common::Sql::default();
@@ -96,7 +96,7 @@ impl Transaction {
     #[mw_rt::actor::method]
     pub async fn get_tx(&mut self, id: &[u8]) -> Vec<u8> {
         let mut sql = proto::common::Sql::default();
-        sql.sql = "select * from where ts where id = ?".into();
+        sql.sql = "select * from where tx where id = ?".into();
         sql.params.push({
             let mut param = proto::common::Param::default();
             param.tp = "bytes".into();
@@ -363,7 +363,7 @@ impl Transaction {
         // 写库transaction
         let mut sql = proto::common::Sql::default();
         sql.sql = 
-            "insert into ts (id,timestamp,inputs,outputs) values (?,?,?,?)"
+            "insert into tx (id,timestamp,inputs,outputs) values (?,?,?,?)"
         .into();
         sql.params.push({
             let mut param = proto::common::Param::default();
