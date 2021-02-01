@@ -79,7 +79,7 @@ pub fn run_contract(handle: i32, bytes: &[u8]) -> NumberResult {
     result.clone()
 }
 
-fn rpc_contract_run_contract_fun<F>(handle: i32, bytes: &[u8], mut f: F)
+fn rpc_contract_run_contract_fun<F>(id: i32, bytes: &[u8], mut f: F)
 where
     F: FnMut(i32),
 {
@@ -105,7 +105,7 @@ where
 
     unsafe {
         rpc_contract_run_contract(
-            handle,
+            id,
             bytes.as_ptr(),
             bytes.len(),
             hook_number::<F>,
@@ -149,15 +149,16 @@ pub extern "C" fn call_rpc_contract_load_contract(
     cb: unsafe extern "C" fn(*mut c_void, i32),
     user_data: *mut c_void,
 ) {
+    mw_std::debug::println(&alloc::format!("{:?},{:?},{:?}",result,cb,user_data));
     unsafe { cb(user_data, result) }
 }
 
 #[no_mangle]
 pub extern "C" fn call_rpc_contract_run_contract(
-    ptr: *const u8,
-    size: usize,
-    cb: unsafe extern "C" fn(*mut c_void, *const u8, usize),
+    result: i32,
+    cb: unsafe extern "C" fn(*mut c_void, i32),
     user_data: *mut c_void,
 ) {
-    unsafe { cb(user_data, ptr, size) }
+    unsafe { cb(user_data, result) }
 }
+

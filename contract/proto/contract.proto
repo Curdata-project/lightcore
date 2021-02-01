@@ -3,10 +3,8 @@ import "../../common/proto/common.proto";
 
 message ContractRef{
     bytes contract_id = 1;
-    Msg msg = 2;
 }
 
 message ContractList{
     repeated bytes contract_list =1;
-    Msg msg = 2;
 }
